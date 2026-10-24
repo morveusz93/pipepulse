@@ -1,0 +1,136 @@
+/*
+ * Design tokens. Dark is the default; light is opt-in via [data-theme="light"].
+ * Color carries meaning: teal = success, coral = failure, amber = running.
+ * Everything else stays muted so status colors are the only loud thing on screen.
+ */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0c0e11;
+  --surface: #12151a;
+  --surface-raised: #171b21;
+  --surface-hover: #1b2028;
+  --border: #232931;
+  --border-subtle: #1a1f26;
+
+  --text: #e4e7eb;
+  --text-muted: #8a93a0;
+  --text-faint: #5b6471;
+
+  --success: #3ec7a6;
+  --failure: #f2716b;
+  --running: #e9b04d;
+  --neutral: #4c5562;
+
+  --failure-tint: rgb(242 113 107 / 0.06);
+  --failure-tint-strong: rgb(242 113 107 / 0.12);
+  --running-tint: rgb(233 176 77 / 0.12);
+  --success-tint: rgb(62 199 166 / 0.12);
+
+  --focus: #7aa7ff;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-raised: #fbfbfc;
+  --surface-hover: #f1f3f6;
+  --border: #e1e4e9;
+  --border-subtle: #eceef2;
+
+  --text: #14171c;
+  --text-muted: #5a6370;
+  --text-faint: #8d95a1;
+
+  --success: #0f9a7c;
+  --failure: #d6493f;
+  --running: #b7791f;
+  --neutral: #a3abb6;
+
+  --failure-tint: rgb(214 73 63 / 0.05);
+  --failure-tint-strong: rgb(214 73 63 / 0.1);
+  --running-tint: rgb(183 121 31 / 0.1);
+  --success-tint: rgb(15 154 124 / 0.1);
+
+  --focus: #2f6fed;
+}
+
+:root {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius: 6px;
+  --radius-lg: 10px;
+  --row-height: 52px;
+  --page-width: 1180px;
+
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Numbers, durations, SHAs, timestamps. */
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

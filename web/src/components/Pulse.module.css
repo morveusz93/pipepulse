@@ -1,0 +1,47 @@
+.pulse {
+  display: block;
+  overflow: visible;
+}
+
+.bar {
+  transition: opacity 120ms var(--ease);
+}
+
+.pulse:hover .bar {
+  opacity: 0.45;
+}
+
+.pulse:hover .bar:hover {
+  opacity: 1;
+}
+
+.success {
+  fill: var(--success);
+}
+
+.failure {
+  fill: var(--failure);
+}
+
+.neutral {
+  fill: var(--neutral);
+}
+
+.running {
+  fill: var(--running);
+  animation: beat 1.6s var(--ease) infinite;
+}
+
+.empty {
+  fill: var(--border);
+}
+
+@keyframes beat {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}

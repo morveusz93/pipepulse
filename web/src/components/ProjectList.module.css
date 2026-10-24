@@ -1,0 +1,117 @@
+.table {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.6fr) 160px 120px 92px 92px 96px;
+  align-items: center;
+  gap: 16px;
+  min-height: var(--row-height);
+  padding: 0 20px;
+  border-top: 1px solid var(--border-subtle);
+  transition: background-color 120ms var(--ease);
+}
+
+.row:first-child {
+  border-top: none;
+}
+
+a.row:hover {
+  background: var(--surface-hover);
+}
+
+a.row:focus-visible {
+  outline-offset: -2px;
+  border-radius: 0;
+}
+
+.head {
+  min-height: 38px;
+  font-size: 12px;
+  color: var(--text-faint);
+  background: var(--surface-raised);
+}
+
+/* Active failure: faint coral wash + accent edge, readable without relying on color alone
+   (the status column also says "failed"). */
+.failing {
+  background: var(--failure-tint);
+  box-shadow: inset 2px 0 0 var(--failure);
+}
+
+a.failing:hover {
+  background: var(--failure-tint-strong);
+}
+
+.project {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 8px 0;
+}
+
+.name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.path {
+  font-size: 12px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pulse {
+  display: flex;
+  align-items: center;
+}
+
+.num {
+  text-align: right;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+}
+
+@media (max-width: 900px) {
+  .row {
+    grid-template-columns: minmax(140px, 1fr) 150px 100px 80px;
+  }
+
+  .row > :nth-child(5),
+  .row > :nth-child(6) {
+    display: none;
+  }
+}
+
+/* Phones: keep the pulse (the last stripe already shows the current status). */
+@media (max-width: 560px) {
+  .row {
+    grid-template-columns: minmax(110px, 1fr) auto;
+    gap: 12px;
+    padding: 0 14px;
+  }
+
+  .row > :nth-child(3),
+  .row > :nth-child(4) {
+    display: none;
+  }
+}

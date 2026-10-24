@@ -1,0 +1,32 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.success .dot {
+  background: var(--success);
+}
+
+.failure {
+  color: var(--failure);
+}
+
+.running .dot {
+  background: var(--running);
+  box-shadow: 0 0 0 3px var(--running-tint);
+}
+
+.neutral .dot {
+  background: var(--neutral);
+}

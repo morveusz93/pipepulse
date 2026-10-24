@@ -77,9 +77,9 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 - [x] API endpoints: projects, pipelines, aggregates, job log
 - [x] Token encryption (Fernet)
 - [x] Seed data for demo mode
-- [ ] Frontend: design tokens, dark/light theme
-- [ ] Pulse component
-- [ ] Summary bar + project list
+- [x] Frontend: design tokens, dark/light theme
+- [x] Pulse component
+- [x] Summary bar + project list
 - [ ] Per-project view (trend chart, fail rate, MTTR)
 - [ ] Inline log viewer, filters/sorting
 - [ ] Dockerfiles + Helm chart
@@ -109,6 +109,14 @@ uv run uvicorn pipepulse.main:app --reload
 uv run pytest
 ```
 
+Dashboard (Next.js, needs the API running):
+
+```bash
+cd web
+npm install
+npm run dev                      # http://localhost:3000
+```
+
 DB-backed tests use a separate database. Create it once and they'll run against it, otherwise they're skipped:
 
 ```bash
@@ -121,7 +129,7 @@ Set in `.env`: `PIPEPULSE_DEMO_MODE=false`, `PIPEPULSE_ENCRYPTION_KEY` and `PIPE
 
 API docs: http://localhost:8000/api/docs
 
-Repo layout: `api/` (FastAPI + poller), `web/` (Next.js, coming), `deploy/` (Helm, coming).
+Repo layout: `api/` (FastAPI + poller), `web/` (Next.js dashboard), `deploy/` (Helm, coming).
 
 ---
 
