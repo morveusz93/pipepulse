@@ -3,7 +3,8 @@ import { AutoRefresh } from "@/components/AutoRefresh";
 import { ProjectList } from "@/components/ProjectList";
 import { SummaryBar } from "@/components/SummaryBar";
 import { apiGet } from "@/lib/api";
-import type { ProjectRow, Summary } from "@/lib/types";
+import type { ActiveFailure } from "@/components/ProjectList";
+import type { JobLog, PipelinePage, ProjectRow, Summary } from "@/lib/types";
 import styles from "./page.module.css";
 
 const WINDOW_DAYS = 7;
@@ -28,15 +29,35 @@ async function loadDashboard() {
     apiGet<Summary>("/api/summary", { days: WINDOW_DAYS }),
     apiGet<ProjectRow[]>("/api/projects", { days: WINDOW_DAYS }),
   ]);
-  return { summary, projects, loadedAt: Date.now() };
+  const failures = await loadActiveFailures(projects.filter((p) => p.active_failure));
+  return { summary, projects, failures, loadedAt: Date.now() };
+}
+
+/** Newest red default-branch pipeline of each failing project, with its first job's log. */
+async function loadActiveFailures(failing: ProjectRow[]): Promise<Record<number, ActiveFailure>> {
+  const entries = await Promise.all(
+    failing.map(async (project) => {
+      const page = await apiGet<PipelinePage>("/api/pipelines", {
+        project_id: project.id,
+        status: "failed",
+        scope: "default",
+        limit: 1,
+      });
+      const job = page.items[0]?.failed_jobs[0];
+      if (!job) return null;
+      const log = job.has_log ? await apiGet<JobLog>(`/api/jobs/${job.id}/log`) : null;
+      return [project.id, { job, log: log?.log ?? null }] as const;
+    }),
+  );
+  return Object.fromEntries(entries.filter((e) => e !== null));
 }
 
 async function Dashboard() {
-  const { summary, projects, loadedAt } = await loadDashboard();
+  const { summary, projects, failures, loadedAt } = await loadDashboard();
   return (
     <div className={styles.stack}>
       <SummaryBar summary={summary} projects={projects} />
-      <ProjectList projects={projects} days={WINDOW_DAYS} now={loadedAt} />
+      <ProjectList projects={projects} failures={failures} days={WINDOW_DAYS} now={loadedAt} />
     </div>
   );
 }

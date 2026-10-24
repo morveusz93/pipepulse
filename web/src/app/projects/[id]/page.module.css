@@ -1,0 +1,137 @@
+.main {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 20px 24px 64px;
+}
+
+.back {
+  display: inline-block;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.back:hover {
+  color: var(--text);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.identity {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.external {
+  color: var(--focus);
+}
+
+.external:hover {
+  text-decoration: underline;
+}
+
+.headerSide {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.windows {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.window {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.window:hover {
+  color: var(--text);
+}
+
+.window[aria-current="page"] {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.panel {
+  padding: 18px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.panelTitle,
+.sectionTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sectionTitle {
+  margin: 8px 0 12px;
+}
+
+.panelHint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-faint);
+}
+
+.skeleton {
+  height: 640px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+}
+
+@media (max-width: 560px) {
+  .main {
+    padding: 16px 14px 48px;
+  }
+
+  .headerSide {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

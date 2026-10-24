@@ -36,37 +36,50 @@ async def seed_demo(
     trace_tail_lines: int = 50,
     seed: int = 42,
 ) -> SeedResult:
-    """Replace all demo projects (those without a connection) with fresh generated history.
+    """Regenerate the history of demo projects (those without a connection).
 
-    Commits nothing — the caller owns the transaction.
+    Demo project rows are kept and updated in place, so their ids (and dashboard URLs) survive
+    reseeding; only their pipelines are replaced. Commits nothing: the caller owns the
+    transaction.
     """
     now = now or datetime.now(UTC)
-    await session.execute(delete(Project).where(Project.connection_id.is_(None)))
+    demo = Project.connection_id.is_(None)
+    wanted = {profile.gitlab_project_id for profile in PROFILES}
+    await session.execute(delete(Project).where(demo, Project.gitlab_project_id.not_in(wanted)))
+    await session.execute(
+        delete(Pipeline).where(Pipeline.project_id.in_(select(Project.id).where(demo)))
+    )
+    existing = {p.gitlab_project_id: p for p in await session.scalars(select(Project).where(demo))}
+
+    projects: list[tuple[Project, ProjectProfile]] = []
+    for profile in PROFILES:
+        project = existing.get(profile.gitlab_project_id) or Project(
+            gitlab_project_id=profile.gitlab_project_id
+        )
+        project.path_with_namespace = f"acme/{profile.name}"
+        project.name = profile.name
+        project.web_url = f"{WEB_BASE}/{profile.name}"
+        project.default_branch = DEFAULT_BRANCH
+        project.last_polled_at = now
+        session.add(project)
+        projects.append((project, profile))
+    await session.flush()  # assigns ids to new projects
 
     pipeline_ids = count(2_840_000)
     job_ids = count(8_120_000_000)
-    for profile in PROFILES:
+    for project, profile in projects:
         rng = random.Random(f"{seed}:{profile.name}")
-        project = Project(
-            gitlab_project_id=profile.gitlab_project_id,
-            path_with_namespace=f"acme/{profile.name}",
-            name=profile.name,
-            web_url=f"{WEB_BASE}/{profile.name}",
-            default_branch=DEFAULT_BRANCH,
-            last_polled_at=now,
-        )
         runs = _ProjectHistory(profile, rng, now, days, trace_tail_lines).generate()
         for pipeline in sorted(runs, key=lambda p: p.created_at):
+            pipeline.project_id = project.id
             pipeline.gitlab_pipeline_id = next(pipeline_ids)
             pipeline.web_url = f"{project.web_url}/-/pipelines/{pipeline.gitlab_pipeline_id}"
             for job in pipeline.failed_jobs:
                 job.gitlab_job_id = next(job_ids)
                 job.web_url = f"{project.web_url}/-/jobs/{job.gitlab_job_id}"
-            project.pipelines.append(pipeline)
-        session.add(project)
+            session.add(pipeline)
     await session.flush()
 
-    demo = Project.connection_id.is_(None)
     pipelines = await session.scalar(
         select(func.count()).select_from(Pipeline).join(Project).where(demo)
     )

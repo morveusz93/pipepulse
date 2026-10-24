@@ -80,8 +80,9 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 - [x] Frontend: design tokens, dark/light theme
 - [x] Pulse component
 - [x] Summary bar + project list
-- [ ] Per-project view (trend chart, fail rate, MTTR)
-- [ ] Inline log viewer, filters/sorting
+- [x] Per-project view (trend chart, fail rate, MTTR)
+- [x] Inline log viewer
+- [ ] Pipeline filters/sorting, connection management UI
 - [ ] Dockerfiles + Helm chart
 - [ ] GitLab CI pipeline (pipepulse monitors itself)
 - [ ] Live deploy to `pipepulse.morv.dev`
@@ -115,6 +116,7 @@ Dashboard (Next.js, needs the API running):
 cd web
 npm install
 npm run dev                      # http://localhost:3000
+npm test                         # unit tests (ANSI log parser, formatting)
 ```
 
 DB-backed tests use a separate database. Create it once and they'll run against it, otherwise they're skipped:

@@ -70,3 +70,8 @@
     gap: 2px;
   }
 }
+
+.link {
+  color: var(--focus);
+  font-size: 13px;
+}

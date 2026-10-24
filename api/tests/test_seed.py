@@ -60,6 +60,18 @@ async def test_seed_replaces_only_demo_projects(session: AsyncSession) -> None:
     assert await session.get(Project, real.id) is not None
 
 
+async def test_reseed_keeps_demo_project_ids(session: AsyncSession) -> None:
+    await seed_demo(session, now=NOW, days=DAYS)
+    await session.commit()
+    ids_before = {p.name: p.id for p in await session.scalars(select(Project))}
+
+    await seed_demo(session, now=NOW + timedelta(days=1), days=DAYS)
+    await session.commit()
+    session.expire_all()
+
+    assert {p.name: p.id for p in await session.scalars(select(Project))} == ids_before
+
+
 async def test_seed_data_is_consistent(session: AsyncSession) -> None:
     await seed_demo(session, now=NOW, days=DAYS, trace_tail_lines=10)
     await session.commit()

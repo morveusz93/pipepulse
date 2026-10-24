@@ -115,3 +115,77 @@ a.failing:hover {
     display: none;
   }
 }
+
+/* Active failure preview under the row: job + error line, expands to the log. */
+.failureDetails,
+.failureStatic {
+  background: var(--failure-tint);
+  box-shadow: inset 2px 0 0 var(--failure);
+}
+
+.failure {
+  display: grid;
+  grid-template-columns: 16px auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 0 20px 12px 20px;
+  font-size: 12.5px;
+  list-style: none;
+}
+
+summary.failure {
+  cursor: pointer;
+}
+
+summary.failure::-webkit-details-marker {
+  display: none;
+}
+
+summary.failure:focus-visible {
+  outline-offset: -2px;
+  border-radius: 0;
+}
+
+.branch {
+  color: var(--text-faint);
+  justify-self: end;
+}
+
+.job {
+  color: var(--failure);
+}
+
+.excerpt {
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toggle {
+  font-size: 12px;
+  color: var(--text-faint);
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+summary.failure:hover .toggle,
+.failureDetails[open] .toggle {
+  color: var(--text);
+  border-color: var(--text-faint);
+}
+
+.failureLog {
+  padding: 0 20px 16px 46px;
+}
+
+@media (max-width: 560px) {
+  .failure {
+    padding: 0 14px 12px;
+  }
+
+  .failureLog {
+    padding: 0 14px 14px;
+  }
+}

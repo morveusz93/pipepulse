@@ -1,0 +1,85 @@
+.viewport {
+  --log-bg: #0a0c0f;
+  --log-text: #c9ced6;
+  --log-gutter: #4a525e;
+
+  background: var(--log-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-height: 360px;
+  display: flex;
+  flex-direction: column-reverse;
+  overflow: auto;
+}
+
+/* The log stays dark in the light theme too: terminal output reads best that way. */
+:global([data-theme="light"]) .viewport {
+  --log-bg: #15181d;
+  border-color: #15181d;
+}
+
+.scroller {
+  flex: none;
+}
+
+.log {
+  margin: 0;
+  padding: 12px 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--log-text);
+  counter-reset: line;
+  tab-size: 4;
+}
+
+.line {
+  display: block;
+  padding: 0 16px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  counter-increment: line;
+}
+
+.line::before {
+  content: counter(line);
+  display: inline-block;
+  width: 3.2em;
+  margin-right: 14px;
+  text-align: right;
+  color: var(--log-gutter);
+  user-select: none;
+}
+
+.bold {
+  font-weight: 600;
+}
+
+/* Terminal palette tuned to sit next to the app's status colors. */
+.black {
+  color: #5b6471;
+}
+.red {
+  color: #f2716b;
+}
+.green {
+  color: #3ec7a6;
+}
+.yellow {
+  color: #e9b04d;
+}
+.blue {
+  color: #7aa7ff;
+}
+.magenta {
+  color: #c792ea;
+}
+.cyan {
+  color: #6cc5d6;
+}
+.white {
+  color: #e4e7eb;
+}
+.gray {
+  color: #6b7380;
+}

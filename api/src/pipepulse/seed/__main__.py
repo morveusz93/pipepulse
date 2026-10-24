@@ -23,7 +23,8 @@ async def run(days: int) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Replace demo projects with generated history.")
-    parser.add_argument("--days", type=int, default=30)
+    # 60 days so even the 30-day view has a previous window to compare against.
+    parser.add_argument("--days", type=int, default=60)
     parser.add_argument(
         "--if-demo-mode",
         action="store_true",

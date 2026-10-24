@@ -28,6 +28,11 @@
   --running-tint: rgb(233 176 77 / 0.12);
   --success-tint: rgb(62 199 166 / 0.12);
 
+  /* Non-status data (durations): must not be mistaken for a result color. */
+  --chart-line: #9aa6ff;
+  --chart-line-faint: #5d6699;
+  --chart-grid: #1c2129;
+
   --focus: #7aa7ff;
 }
 
@@ -54,6 +59,10 @@
   --failure-tint-strong: rgb(214 73 63 / 0.1);
   --running-tint: rgb(183 121 31 / 0.1);
   --success-tint: rgb(15 154 124 / 0.1);
+
+  --chart-line: #4f5fd6;
+  --chart-line-faint: #a3abe8;
+  --chart-grid: #eceef2;
 
   --focus: #2f6fed;
 }

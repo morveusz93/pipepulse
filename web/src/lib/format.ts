@@ -49,3 +49,9 @@ export function statusTone(status: string): StatusTone {
   if (ACTIVE_STATUSES.has(status)) return "running";
   return "neutral";
 }
+
+/** refs/merge-requests/137/head -> !137 (GitLab's own MR notation); branches unchanged. */
+export function refLabel(ref: string): string {
+  const mr = /^refs\/merge-requests\/(\d+)\/(?:head|merge|train)$/.exec(ref);
+  return mr ? `!${mr[1]}` : ref;
+}

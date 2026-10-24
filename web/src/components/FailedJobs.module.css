@@ -1,0 +1,74 @@
+.jobs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.job {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: 12px auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--radius);
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary:hover {
+  background: var(--surface-hover);
+}
+
+.chevron {
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid var(--text-faint);
+  border-bottom: 1.5px solid var(--text-faint);
+  transform: rotate(-45deg);
+  transition: transform 150ms var(--ease);
+  justify-self: center;
+}
+
+.job[open] .chevron {
+  transform: rotate(45deg);
+}
+
+.name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--failure);
+}
+
+.meta {
+  font-size: 12px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.duration {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.body {
+  padding: 0 12px 12px;
+}
+
+.note {
+  margin: 0;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}

@@ -1,4 +1,4 @@
-.bar {
+.strip {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   background: var(--surface);
@@ -45,8 +45,12 @@
   color: var(--running);
 }
 
+.success {
+  color: var(--success);
+}
+
 @media (max-width: 760px) {
-  .bar {
+  .strip {
     grid-template-columns: repeat(2, 1fr);
   }
 
