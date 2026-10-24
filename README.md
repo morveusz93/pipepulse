@@ -91,7 +91,25 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 
 ## Local development
 
-> Coming soon — docker-compose setup will be the entry point.
+Prerequisites: [Docker](https://docs.docker.com/engine/install/) with the Compose plugin. For working on the API outside containers also [uv](https://docs.astral.sh/uv/). Postgres runs in Docker, so you don't need to install it locally.
+
+```bash
+cp .env.example .env
+docker compose up --build        # postgres + migrations + api on :8000
+curl localhost:8000/readyz
+```
+
+API without Docker (needs a reachable Postgres, see `PIPEPULSE_DATABASE_URL`):
+
+```bash
+cd api
+uv sync
+uv run alembic upgrade head
+uv run uvicorn pipepulse.main:app --reload
+uv run pytest
+```
+
+Repo layout: `api/` (FastAPI + poller), `web/` (Next.js, coming), `deploy/` (Helm, coming).
 
 ---
 
