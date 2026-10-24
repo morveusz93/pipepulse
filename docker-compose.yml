@@ -36,5 +36,15 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  worker:
+    build: ./api
+    command: ["python", "-m", "pipepulse.worker"]
+    env_file: .env
+    environment:
+      PIPEPULSE_DATABASE_URL: postgresql+psycopg://pipepulse:pipepulse@postgres:5432/pipepulse
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
 volumes:
   pgdata:

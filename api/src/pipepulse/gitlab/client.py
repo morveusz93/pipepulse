@@ -177,8 +177,11 @@ class GitLabClient:
                 delay = self._retry_delay(response, attempt)
                 logger.warning(
                     "GitLab %s %s returned %s, retrying in %.1fs",
-                    method, path, response.status_code, delay,
-                )  # fmt: skip
+                    method,
+                    path,
+                    response.status_code,
+                    delay,
+                )
                 await asyncio.sleep(delay)
                 continue
 

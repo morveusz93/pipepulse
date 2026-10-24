@@ -25,7 +25,7 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 
 | Layer | Tech |
 |---|---|
-| Backend | Python · FastAPI · APScheduler |
+| Backend | Python · FastAPI · async background worker |
 | Database | PostgreSQL |
 | Frontend | Next.js · TypeScript · Recharts |
 | Infra | Docker · Helm · GitLab CI |
@@ -70,12 +70,12 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 ## Roadmap
 
 - [x] Project spec & architecture decisions
-- [ ] Repo structure, docker-compose (api + postgres)
-- [ ] GitLab API client (projects, pipelines, jobs, trace)
-- [ ] Data model + migrations
-- [ ] Background polling service
+- [x] Repo structure, docker-compose (api + postgres)
+- [x] GitLab API client (projects, pipelines, jobs, trace)
+- [x] Data model + migrations
+- [x] Background polling service
 - [ ] API endpoints: projects, pipelines, aggregates, job log
-- [ ] Token encryption (Fernet)
+- [x] Token encryption (Fernet)
 - [ ] Seed data for demo mode
 - [ ] Frontend: design tokens, dark/light theme
 - [ ] Pulse component
@@ -107,6 +107,12 @@ uv sync
 uv run alembic upgrade head
 uv run uvicorn pipepulse.main:app --reload
 uv run pytest
+```
+
+DB-backed tests use a separate database. Create it once and they'll run against it, otherwise they're skipped:
+
+```bash
+docker compose exec postgres psql -U pipepulse -c 'CREATE DATABASE pipepulse_test'
 ```
 
 Repo layout: `api/` (FastAPI + poller), `web/` (Next.js, coming), `deploy/` (Helm, coming).

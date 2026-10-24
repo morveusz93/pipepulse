@@ -13,6 +13,17 @@ class Settings(BaseSettings):
     # Public demo instance: serve seed data only, never accept user tokens.
     demo_mode: bool = True
     poll_interval_seconds: int = 120
+    # How far back the first sync of a new project reaches.
+    backfill_days: int = 30
+    trace_tail_lines: int = 50
+    # Pipeline sources that aren't regular CI runs and would skew trends.
+    # Env override is a JSON list, e.g. PIPEPULSE_IGNORED_SOURCES='["duo_workflow"]'.
+    ignored_sources: set[str] = {
+        "duo_workflow",
+        "parent_pipeline",
+        "ondemand_dast_scan",
+        "ondemand_dast_validation",
+    }
 
 
 @lru_cache
