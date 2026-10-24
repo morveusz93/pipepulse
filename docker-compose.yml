@@ -25,6 +25,17 @@ services:
       postgres:
         condition: service_healthy
 
+  # Demo mode only: regenerate demo history relative to now on every start.
+  seed:
+    build: ./api
+    command: ["python", "-m", "pipepulse.seed", "--if-demo-mode"]
+    env_file: .env
+    environment:
+      PIPEPULSE_DATABASE_URL: postgresql+psycopg://pipepulse:pipepulse@postgres:5432/pipepulse
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
   api:
     build: ./api
     env_file: .env
@@ -33,7 +44,7 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      migrate:
+      seed:
         condition: service_completed_successfully
 
   worker:

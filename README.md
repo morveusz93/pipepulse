@@ -76,7 +76,7 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 - [x] Background polling service
 - [ ] API endpoints: projects, pipelines, aggregates, job log
 - [x] Token encryption (Fernet)
-- [ ] Seed data for demo mode
+- [x] Seed data for demo mode
 - [ ] Frontend: design tokens, dark/light theme
 - [ ] Pulse component
 - [ ] Summary bar + project list
