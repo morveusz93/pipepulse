@@ -74,7 +74,7 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 - [x] GitLab API client (projects, pipelines, jobs, trace)
 - [x] Data model + migrations
 - [x] Background polling service
-- [ ] API endpoints: projects, pipelines, aggregates, job log
+- [x] API endpoints: projects, pipelines, aggregates, job log
 - [x] Token encryption (Fernet)
 - [x] Seed data for demo mode
 - [ ] Frontend: design tokens, dark/light theme
