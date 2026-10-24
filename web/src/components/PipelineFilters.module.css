@@ -1,0 +1,52 @@
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.clear {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.clear:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+.range {
+  color: var(--text-faint);
+}
+
+.pageLinks {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.pageLink {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  background: var(--surface);
+}
+
+a.pageLink:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.disabled {
+  opacity: 0.4;
+}

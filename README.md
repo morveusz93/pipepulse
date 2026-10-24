@@ -82,7 +82,8 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 - [x] Summary bar + project list
 - [x] Per-project view (trend chart, fail rate, MTTR)
 - [x] Inline log viewer
-- [ ] Pipeline filters/sorting, connection management UI
+- [x] Pipeline filters, sorting, pagination
+- [ ] Login + connection management UI (self-hosted)
 - [ ] Dockerfiles + Helm chart
 - [ ] GitLab CI pipeline (pipepulse monitors itself)
 - [ ] Live deploy to `pipepulse.morv.dev`

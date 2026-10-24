@@ -57,7 +57,7 @@ export function TrendCharts({ points }: { points: TrendPoint[] }) {
         </figcaption>
         <div className={styles.chart}>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
+            <LineChart data={points} margin={{ top: 8, right: 18, bottom: 0, left: -8 }}>
               <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
               <XAxis
                 dataKey="day"
@@ -109,7 +109,7 @@ export function TrendCharts({ points }: { points: TrendPoint[] }) {
         </figcaption>
         <div className={styles.chart}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
+            <BarChart data={points} margin={{ top: 8, right: 18, bottom: 0, left: -8 }}>
               <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
               <XAxis
                 dataKey="day"

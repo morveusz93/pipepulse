@@ -3,13 +3,24 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { Incidents } from "@/components/Incidents";
+import {
+  Pagination,
+  PipelineFilters,
+  type PipelineFilterState,
+  SCOPE_FILTERS,
+  SORTS,
+  SOURCE_FILTERS,
+  STATUS_FILTERS,
+} from "@/components/PipelineFilters";
 import { PipelineTable } from "@/components/PipelineTable";
 import { Pulse } from "@/components/Pulse";
+import { Segmented } from "@/components/Segmented";
 import { Stat, StatStrip, Tone } from "@/components/StatStrip";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TrendCharts } from "@/components/TrendCharts";
 import { ApiError, apiGet } from "@/lib/api";
 import { formatDuration, formatPercent, formatTimestamp } from "@/lib/format";
+import { first, hrefWith, pick, type SearchParams } from "@/lib/query";
 import type { PipelinePage, ProjectRow, ProjectStats, TrendPoint } from "@/lib/types";
 import styles from "./page.module.css";
 
@@ -31,18 +42,42 @@ export default function ProjectPage(props: PageProps<"/projects/[id]">) {
   );
 }
 
-function parseWindow(value: string | string[] | undefined): number {
-  const days = Number(Array.isArray(value) ? value[0] : value);
+function parseWindow(params: SearchParams): number {
+  const days = Number(first(params, "days"));
   return (WINDOWS as readonly number[]).includes(days) ? days : DEFAULT_WINDOW;
 }
 
-async function loadProject(id: string, days: number) {
+function parseFilters(params: SearchParams): PipelineFilterState {
+  const page = Math.floor(Number(first(params, "page")));
+  return {
+    status: pick(params, "status", STATUS_FILTERS, "all"),
+    scope: pick(params, "scope", SCOPE_FILTERS, "all"),
+    source: pick(params, "source", SOURCE_FILTERS, "all"),
+    sort: pick(params, "sort", SORTS, "-created_at"),
+    page: Number.isFinite(page) && page > 1 ? page : 1,
+  };
+}
+
+function pipelineQuery(id: string, filters: PipelineFilterState): Record<string, string | number> {
+  const query: Record<string, string | number> = {
+    project_id: id,
+    sort: filters.sort,
+    limit: RECENT_PIPELINES,
+    offset: (filters.page - 1) * RECENT_PIPELINES,
+  };
+  if (filters.status !== "all") query.status = filters.status;
+  if (filters.scope !== "all") query.scope = filters.scope;
+  if (filters.source !== "all") query.source = filters.source;
+  return query;
+}
+
+async function loadProject(id: string, days: number, filters: PipelineFilterState) {
   try {
     const [project, stats, trend, pipelines] = await Promise.all([
       apiGet<ProjectRow>(`/api/projects/${id}`, { days }),
       apiGet<ProjectStats>(`/api/projects/${id}/stats`, { days }),
       apiGet<TrendPoint[]>(`/api/projects/${id}/trend`, { days }),
-      apiGet<PipelinePage>("/api/pipelines", { project_id: id, limit: RECENT_PIPELINES }),
+      apiGet<PipelinePage>("/api/pipelines", pipelineQuery(id, filters)),
     ]);
     return { project, stats, trend, pipelines, loadedAt: Date.now() };
   } catch (error) {
@@ -56,11 +91,12 @@ async function ProjectView({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<SearchParams>;
 }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
-  const days = parseWindow(query.days);
-  const data = await loadProject(id, days);
+  const days = parseWindow(query);
+  const filters = parseFilters(query);
+  const data = await loadProject(id, days, filters);
   if (!data) notFound();
   const { project, stats, trend, pipelines, loadedAt } = data;
 
@@ -82,19 +118,14 @@ async function ProjectView({
         </div>
         <div className={styles.headerSide}>
           <Pulse runs={project.pulse} label={project.name} />
-          <nav className={styles.windows} aria-label="Time window">
-            {WINDOWS.map((w) => (
-              <Link
-                key={w}
-                href={`?days=${w}`}
-                className={styles.window}
-                aria-current={w === days ? "page" : undefined}
-                scroll={false}
-              >
-                {w}d
-              </Link>
-            ))}
-          </nav>
+          <Segmented
+            label="Time window"
+            options={WINDOWS.map((w) => ({
+              label: `${w}d`,
+              href: hrefWith(query, { days: w === DEFAULT_WINDOW ? null : String(w) }),
+              current: w === days,
+            }))}
+          />
         </div>
       </header>
 
@@ -112,13 +143,25 @@ async function ProjectView({
 
       <section>
         <h2 className={styles.sectionTitle}>
-          Recent pipelines
-          <span className={styles.panelHint}>all refs · click a failed one to see its logs</span>
+          Pipelines
+          <span className={styles.panelHint}>click a failed one to see its logs</span>
         </h2>
+        <PipelineFilters params={query} state={filters} defaultBranch={project.default_branch} />
         <PipelineTable
           pipelines={pipelines.items}
           defaultBranch={project.default_branch}
           now={loadedAt}
+          emptyMessage={
+            pipelines.total === 0 && filters.page === 1
+              ? "No pipelines match these filters."
+              : "No more pipelines."
+          }
+        />
+        <Pagination
+          params={query}
+          page={filters.page}
+          pageSize={RECENT_PIPELINES}
+          total={pipelines.total}
         />
       </section>
     </div>

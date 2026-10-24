@@ -9,13 +9,15 @@ export function PipelineTable({
   pipelines,
   defaultBranch,
   now,
+  emptyMessage = "No pipelines recorded yet.",
 }: {
   pipelines: PipelineOut[];
   defaultBranch: string | null;
   now: number;
+  emptyMessage?: string;
 }) {
   if (pipelines.length === 0) {
-    return <div className={styles.empty}>No pipelines recorded yet.</div>;
+    return <div className={styles.empty}>{emptyMessage}</div>;
   }
   return (
     <div className={styles.table}>
