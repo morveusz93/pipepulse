@@ -26,7 +26,7 @@ jobs:
         working-directory: api
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.2 # no floating major tags for this action
         with:
           version: "0.6.17"
           enable-cache: true
