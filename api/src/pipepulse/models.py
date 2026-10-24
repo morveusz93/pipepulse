@@ -50,7 +50,9 @@ class Connection(Base):
     token_hint: Mapped[str] = mapped_column(String(4))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    projects: Mapped[list["Project"]] = relationship(back_populates="connection")
+    projects: Mapped[list["Project"]] = relationship(
+        back_populates="connection", cascade="all, delete-orphan", passive_deletes=True
+    )
 
 
 class Project(Base):

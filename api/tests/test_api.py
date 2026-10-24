@@ -1,17 +1,13 @@
-from collections.abc import AsyncIterator
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from itertools import count
 
 import httpx
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from pipepulse.db import get_session
-from pipepulse.deps import get_now
-from pipepulse.main import app
 from pipepulse.models import Job, Pipeline, Project
+from tests.conftest import NOW
 
-NOW = datetime(2026, 10, 24, 12, 0, tzinfo=UTC)
 _ids = count(1000)
 
 
@@ -83,22 +79,6 @@ async def data(session: AsyncSession) -> dict[str, Project]:
     )
     await session.commit()
     return {"alpha": alpha, "beta": beta}
-
-
-@pytest.fixture
-async def client(
-    sessionmaker: async_sessionmaker[AsyncSession],
-) -> AsyncIterator[httpx.AsyncClient]:
-    async def session_override() -> AsyncIterator[AsyncSession]:
-        async with sessionmaker() as session:
-            yield session
-
-    app.dependency_overrides[get_session] = session_override
-    app.dependency_overrides[get_now] = lambda: NOW
-    transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client
-    app.dependency_overrides.clear()
 
 
 async def get(client: httpx.AsyncClient, url: str, **params) -> dict | list:

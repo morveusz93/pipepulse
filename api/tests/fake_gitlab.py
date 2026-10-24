@@ -4,6 +4,7 @@ import re
 from collections import Counter
 from datetime import datetime
 from typing import Any
+from urllib.parse import unquote
 
 import httpx
 
@@ -26,6 +27,23 @@ class FakeGitLab:
         self.traces: dict[int, str | None] = {}  # None => 401, like anonymous trace access
         self.commits: dict[str, str] = {}
         self.calls: Counter[str] = Counter()
+        # int => that HTTP status instead of a body
+        self.token_info: dict[str, Any] | int = {
+            "name": "pipepulse",
+            "scopes": ["read_api"],
+            "active": True,
+            "expires_at": None,
+        }
+        self.projects: dict[int, dict[str, Any]] = {
+            PROJECT_ID: {
+                "id": PROJECT_ID,
+                "name": "p",
+                "path_with_namespace": "g/p",
+                "web_url": "https://gitlab.example.com/g/p",
+                "default_branch": "main",
+            }
+        }
+        self.tokens_seen: list[str | None] = []
 
     def add_pipeline(
         self,
@@ -69,13 +87,32 @@ class FakeGitLab:
         )
         self.traces[job_id] = trace
 
-    def client(self) -> GitLabClient:
+    def client(
+        self, base_url: str = "https://gitlab.example.com", token: str = "glpat-test"
+    ) -> GitLabClient:
         return GitLabClient(
-            "https://gitlab.example.com", "glpat-test", transport=httpx.MockTransport(self.handle)
+            base_url, token, backoff_base=0, transport=httpx.MockTransport(self.handle)
         )
 
     def handle(self, request: httpx.Request) -> httpx.Response:
+        self.tokens_seen.append(request.headers.get("PRIVATE-TOKEN"))
         path = request.url.path
+        if path == "/api/v4/personal_access_tokens/self":
+            if isinstance(self.token_info, int):
+                return httpx.Response(self.token_info)
+            return httpx.Response(200, json=self.token_info)
+        if path == "/api/v4/user":
+            return httpx.Response(200, json={"id": 1, "username": "me"})
+        if path == "/api/v4/projects":
+            search = request.url.params.get("search", "")
+            found = [p for p in self.projects.values() if search in p["path_with_namespace"]]
+            return httpx.Response(200, json=found)
+        raw_path = unquote(request.url.raw_path.decode().split("?")[0])
+        if m := re.fullmatch(r"/api/v4/projects/([^/]+(?:/[^/]+)*)", raw_path):
+            ref = m[1]
+            for p in self.projects.values():
+                if ref in (str(p["id"]), p["path_with_namespace"]):
+                    return httpx.Response(200, json=p)
         if path == f"{BASE}/pipelines":
             self.calls["list"] += 1
             since = request.url.params.get("updated_after")

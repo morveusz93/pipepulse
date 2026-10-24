@@ -115,6 +115,12 @@ DB-backed tests use a separate database. Create it once and they'll run against 
 docker compose exec postgres psql -U pipepulse -c 'CREATE DATABASE pipepulse_test'
 ```
 
+### Connecting your own GitLab (self-hosted)
+
+Set in `.env`: `PIPEPULSE_DEMO_MODE=false`, `PIPEPULSE_ENCRYPTION_KEY` and `PIPEPULSE_ADMIN_PASSWORD`. Log in with `POST /api/auth/login`, then add a connection with a token that has the **`read_api`** scope (the full `api` scope works but isn't needed). Tokens are validated against GitLab, stored encrypted and only ever shown masked. Add projects to the connection and the worker backfills their history on its next cycle.
+
+API docs: http://localhost:8000/api/docs
+
 Repo layout: `api/` (FastAPI + poller), `web/` (Next.js, coming), `deploy/` (Helm, coming).
 
 ---

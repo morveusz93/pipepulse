@@ -1,6 +1,6 @@
 """Subset of GitLab REST API v4 payloads that pipepulse consumes. Unknown fields are ignored."""
 
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
@@ -52,3 +52,15 @@ class GitLabCommit(_GitLabModel):
     id: str
     short_id: str
     title: str
+
+
+class GitLabTokenInfo(_GitLabModel):
+    name: str
+    scopes: list[str]
+    active: bool = True
+    expires_at: date | None = None
+
+
+class GitLabUser(_GitLabModel):
+    id: int
+    username: str

@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     encryption_key: SecretStr | None = None
     # Public demo instance: serve seed data only, never accept user tokens.
     demo_mode: bool = True
+    # Self-hosted mode: single admin who manages GitLab connections. Unset = nobody can log in.
+    admin_password: SecretStr | None = None
+    session_ttl_hours: int = 12
+    # Browsers treat localhost as secure, so this can stay on for local development too.
+    cookie_secure: bool = True
     poll_interval_seconds: int = 120
     # How far back the first sync of a new project reaches.
     backfill_days: int = 30

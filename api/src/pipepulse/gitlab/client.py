@@ -14,6 +14,8 @@ from pipepulse.gitlab.schemas import (
     GitLabPipeline,
     GitLabPipelineDetail,
     GitLabProject,
+    GitLabTokenInfo,
+    GitLabUser,
 )
 
 logger = logging.getLogger(__name__)
@@ -81,6 +83,25 @@ class GitLabClient:
         await self._http.aclose()
 
     # --- public API -------------------------------------------------------------------------
+
+    async def get_token_info(self) -> GitLabTokenInfo:
+        """Details of the token in use (GitLab 15.5+): scopes, expiry, active flag."""
+        return GitLabTokenInfo.model_validate(await self._get_json("/personal_access_tokens/self"))
+
+    async def get_current_user(self) -> GitLabUser:
+        return GitLabUser.model_validate(await self._get_json("/user"))
+
+    async def search_projects(self, search: str = "", *, limit: int = 20) -> list[GitLabProject]:
+        """Projects the token's user is a member of, most recently active first."""
+        params: dict[str, Any] = {
+            "membership": "true",
+            "simple": "true",
+            "order_by": "last_activity_at",
+            "per_page": limit,
+        }
+        if search:
+            params["search"] = search
+        return [GitLabProject.model_validate(p) for p in await self._get_json("/projects", params)]
 
     async def get_project(self, project: ProjectRef) -> GitLabProject:
         return GitLabProject.model_validate(await self._get_json(_project_path(project)))
