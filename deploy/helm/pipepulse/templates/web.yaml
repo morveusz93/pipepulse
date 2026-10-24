@@ -1,0 +1,75 @@
+{{- $fullname := include "pipepulse.fullname" . }}
+{{- $component := dict "root" . "component" "web" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-web
+  labels:
+    {{- include "pipepulse.labels" . | nindent 4 }}
+spec:
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+  selector:
+    {{- include "pipepulse.selector" $component | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-web
+  labels:
+    {{- include "pipepulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  replicas: {{ .Values.web.replicas }}
+  selector:
+    matchLabels:
+      {{- include "pipepulse.selector" $component | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "pipepulse.selector" $component | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "pipepulse.podSecurityContext" . | nindent 8 }}
+      containers:
+        - name: web
+          image: {{ include "pipepulse.image" (dict "root" . "name" "web") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            # Server components fetch from the API inside the cluster.
+            - name: PIPEPULSE_API_URL
+              value: "http://{{ $fullname }}-api:8000"
+          ports:
+            - name: http
+              containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /robots.txt
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /robots.txt
+              port: http
+            periodSeconds: 20
+          securityContext:
+            {{- include "pipepulse.containerSecurityContext" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.web.resources | nindent 12 }}
+          volumeMounts:
+            # Next.js writes its cache here; the rest of the filesystem stays read-only.
+            - name: next-cache
+              mountPath: /app/.next/cache
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: next-cache
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}

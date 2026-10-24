@@ -5,6 +5,7 @@
 Monitor multiple GitLab projects from a single view — with history, trends, and inline failure logs.
 
 ![status](https://img.shields.io/badge/status-in%20development-amber)
+[![CI](https://github.com/morveusz93/pipepulse/actions/workflows/ci.yml/badge.svg)](https://github.com/morveusz93/pipepulse/actions/workflows/ci.yml)
 
 ---
 
@@ -28,8 +29,8 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 | Backend | Python · FastAPI · async background worker |
 | Database | PostgreSQL |
 | Frontend | Next.js · TypeScript · Recharts |
-| Infra | Docker · Helm · GitLab CI |
-| Demo | k3s VPS · `pipepulse.morv.dev` |
+| Infra | Docker · Helm (k3s) · GitHub Actions |
+| Demo | Vercel (dashboard only, snapshot data) · `pipepulse.morv.dev` |
 
 ---
 
@@ -84,12 +85,30 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 - [x] Inline log viewer
 - [x] Pipeline filters, sorting, pagination
 - [ ] Login + connection management UI (self-hosted)
-- [ ] Dockerfiles + Helm chart
-- [ ] GitLab CI pipeline (pipepulse monitors itself)
-- [ ] Live deploy to `pipepulse.morv.dev`
+- [x] Dockerfiles + Helm chart (tested on a local k3s cluster)
+- [x] CI (GitHub Actions)
+- [x] Frontend-only demo mode (snapshot of the real API)
+- [ ] Live demo on `pipepulse.morv.dev`
 - [ ] Prometheus metrics (optional)
 
 ---
+
+## Demo
+
+The public demo is the dashboard alone, deployed on Vercel with `PIPEPULSE_DEMO=true`. It needs
+no backend or database: it serves `web/src/demo/snapshot.json`, a snapshot recorded from the
+real API on generated data (6 projects, 60 days of history). Timestamps are shifted to "now" on
+every request, so the demo never looks stale.
+
+Regenerate the snapshot after changing the API or the demo data:
+
+```bash
+docker compose up -d postgres migrate
+cd api && uv run python -m pipepulse.seed.snapshot ../web/src/demo/snapshot.json
+```
+
+To run pipepulse for real against your GitLab, use docker-compose (below) or the
+[Kubernetes guide](deploy/README.md).
 
 ## Local development
 
@@ -97,8 +116,8 @@ Prerequisites: [Docker](https://docs.docker.com/engine/install/) with the Compos
 
 ```bash
 cp .env.example .env
-docker compose up --build        # postgres + migrations + api on :8000
-curl localhost:8000/readyz
+docker compose up --build        # everything: dashboard on :3000, API on :8000
+open http://localhost:3000
 ```
 
 API without Docker (needs a reachable Postgres, see `PIPEPULSE_DATABASE_URL`):
@@ -132,7 +151,7 @@ Set in `.env`: `PIPEPULSE_DEMO_MODE=false`, `PIPEPULSE_ENCRYPTION_KEY` and `PIPE
 
 API docs: http://localhost:8000/api/docs
 
-Repo layout: `api/` (FastAPI + poller), `web/` (Next.js dashboard), `deploy/` (Helm, coming).
+Repo layout: `api/` (FastAPI + poller), `web/` (Next.js dashboard), `deploy/` (Helm chart and [self-hosting guide](deploy/README.md)).
 
 ---
 

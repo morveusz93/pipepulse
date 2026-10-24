@@ -1,0 +1,12 @@
+pipepulse {{ .Values.image.tag }} is deployed.
+
+{{- if .Values.ingress.enabled }}
+  Dashboard: http{{ if .Values.ingress.tls.enabled }}s{{ end }}://{{ .Values.ingress.host }}
+  API docs:  http{{ if .Values.ingress.tls.enabled }}s{{ end }}://{{ .Values.ingress.host }}/api/docs
+{{- end }}
+
+{{- if .Values.demo.enabled }}
+Demo mode: generated history, reseeded on "{{ .Values.demo.reseedSchedule }}". Token management is disabled.
+{{- else }}
+Self-hosted mode. Admin login needs encryption-key and admin-password in secret {{ include "pipepulse.secretName" . }}.
+{{- end }}

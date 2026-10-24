@@ -1,0 +1,7 @@
+apiVersion: v2
+name: pipepulse
+description: Pipeline health dashboard for GitLab (API, worker, web, Postgres)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/morveusz93/pipepulse

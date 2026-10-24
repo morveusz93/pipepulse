@@ -1,0 +1,16 @@
+# Let's Encrypt issuer for the Ingress TLS certificate (HTTP-01 through k3s's Traefik).
+# Replace the email before applying: Let's Encrypt sends expiry warnings there.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: you@example.com
+    privateKeySecretRef:
+      name: letsencrypt-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: traefik

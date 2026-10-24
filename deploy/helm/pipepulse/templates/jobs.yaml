@@ -1,0 +1,77 @@
+{{- $fullname := include "pipepulse.fullname" . }}
+{{- define "pipepulse.jobPod" -}}
+{{- $fullname := include "pipepulse.fullname" .root }}
+restartPolicy: OnFailure
+{{- with .root.Values.imagePullSecrets }}
+imagePullSecrets:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+securityContext:
+  {{- include "pipepulse.podSecurityContext" .root | nindent 2 }}
+{{- if .root.Values.postgres.enabled }}
+initContainers:
+  # On first install the database pod may still be starting.
+  - name: wait-for-postgres
+    image: {{ .root.Values.postgres.image }}
+    command: ["sh", "-c", "until pg_isready -h {{ $fullname }}-postgres -U pipepulse; do sleep 2; done"]
+    securityContext:
+      {{- include "pipepulse.containerSecurityContext" .root | nindent 6 }}
+{{- end }}
+containers:
+  - name: {{ .name }}
+    image: {{ include "pipepulse.image" (dict "root" .root "name" "api") }}
+    imagePullPolicy: {{ .root.Values.image.pullPolicy }}
+    command: ["sh", "-c", {{ .command | quote }}]
+    env:
+      {{- include "pipepulse.backendEnv" .root | nindent 6 }}
+    securityContext:
+      {{- include "pipepulse.containerSecurityContext" .root | nindent 6 }}
+    volumeMounts:
+      - name: tmp
+        mountPath: /tmp
+volumes:
+  - name: tmp
+    emptyDir: {}
+{{- end -}}
+{{- $seed := "" }}
+{{- if .Values.demo.enabled }}
+{{- $seed = printf " && python -m pipepulse.seed --days %d" (int .Values.demo.historyDays) }}
+{{- end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $fullname }}-migrate
+  labels:
+    {{- include "pipepulse.labels" . | nindent 4 }}
+  annotations:
+    # After install (the database exists by then), before every upgrade (old pods keep
+    # serving until the schema is migrated).
+    helm.sh/hook: post-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      {{- include "pipepulse.jobPod" (dict "root" . "name" "migrate" "command" (printf "alembic upgrade head%s" $seed)) | nindent 6 }}
+{{- if .Values.demo.enabled }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $fullname }}-reseed
+  labels:
+    {{- include "pipepulse.labels" . | nindent 4 }}
+spec:
+  # History is generated relative to "now"; a nightly reseed keeps the public demo current.
+  schedule: {{ .Values.demo.reseedSchedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          {{- include "pipepulse.jobPod" (dict "root" . "name" "reseed" "command" (printf "python -m pipepulse.seed --days %d" (int .Values.demo.historyDays))) | nindent 10 }}
+{{- end }}

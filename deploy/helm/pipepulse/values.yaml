@@ -1,0 +1,60 @@
+# Images are pushed by CI as <repository>/api:<tag> and <repository>/web:<tag>.
+image:
+  repository: registry.gitlab.com/morveusz93/pipepulse
+  tag: latest
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+# Public demo: generated history only, connection management disabled, nightly reseed.
+demo:
+  enabled: true
+  reseedSchedule: "0 3 * * *"
+  historyDays: 60
+
+config:
+  pollIntervalSeconds: 120
+  backfillDays: 30
+  traceTailLines: 50
+
+# Application secrets. Prefer `existingSecret` (keys: encryption-key, admin-password) created
+# out of band, e.g. `kubectl create secret generic ...`; never commit real values here.
+secrets:
+  existingSecret: ""
+  encryptionKey: ""
+  adminPassword: ""
+
+api:
+  replicas: 1
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 384Mi }
+
+web:
+  replicas: 1
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 384Mi }
+
+worker:
+  resources:
+    requests: { cpu: 20m, memory: 96Mi }
+    limits: { memory: 256Mi }
+
+postgres:
+  # Disable to use an external database via `externalDatabaseUrl` (key in existingSecret).
+  enabled: true
+  image: postgres:17-alpine
+  storage: 2Gi
+  storageClass: ""
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 512Mi }
+
+ingress:
+  enabled: true
+  className: traefik
+  host: pipepulse.morv.dev
+  tls:
+    enabled: true
+    # cert-manager ClusterIssuer; leave empty if TLS is terminated elsewhere.
+    clusterIssuer: letsencrypt

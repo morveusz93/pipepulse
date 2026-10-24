@@ -43,9 +43,28 @@ services:
       PIPEPULSE_DATABASE_URL: postgresql+psycopg://pipepulse:pipepulse@postgres:5432/pipepulse
     ports:
       - "8000:8000"
+    healthcheck:
+      # The slim image has no curl; the venv's Python is enough.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
     depends_on:
       seed:
         condition: service_completed_successfully
+
+  web:
+    build:
+      context: ./web
+      args:
+        PIPEPULSE_API_URL: http://api:8000
+    environment:
+      PIPEPULSE_API_URL: http://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
 
   worker:
     build: ./api

@@ -1,0 +1,46 @@
+{{- $fullname := include "pipepulse.fullname" . }}
+{{- $component := dict "root" . "component" "worker" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-worker
+  labels:
+    {{- include "pipepulse.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  # Exactly one poller: two would fetch the same pipelines twice.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "pipepulse.selector" $component | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "pipepulse.selector" $component | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "pipepulse.podSecurityContext" . | nindent 8 }}
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: worker
+          image: {{ include "pipepulse.image" (dict "root" . "name" "api") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "-m", "pipepulse.worker"]
+          env:
+            {{- include "pipepulse.backendEnv" . | nindent 12 }}
+          securityContext:
+            {{- include "pipepulse.containerSecurityContext" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
