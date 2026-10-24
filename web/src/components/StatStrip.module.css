@@ -29,7 +29,7 @@
 }
 
 .failure {
-  color: var(--failure);
+  color: var(--failure-text);
 }
 
 .sub {
@@ -42,11 +42,11 @@
 }
 
 .running {
-  color: var(--running);
+  color: var(--running-text);
 }
 
 .success {
-  color: var(--success);
+  color: var(--success-text);
 }
 
 @media (max-width: 760px) {

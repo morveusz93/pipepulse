@@ -103,7 +103,7 @@ export function Pagination({
             ← Newer
           </Link>
         ) : (
-          <span className={`${styles.pageLink} ${styles.disabled}`}>← Newer</span>
+          <span className={`${styles.pageLink} ${styles.disabled}`} aria-disabled="true">← Newer</span>
         )}
         {page < pages ? (
           <Link
@@ -114,7 +114,7 @@ export function Pagination({
             Older →
           </Link>
         ) : (
-          <span className={`${styles.pageLink} ${styles.disabled}`}>Older →</span>
+          <span className={`${styles.pageLink} ${styles.disabled}`} aria-disabled="true">Older →</span>
         )}
       </span>
     </nav>

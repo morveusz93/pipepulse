@@ -46,7 +46,7 @@
 .name {
   font-family: var(--font-mono);
   font-size: 13px;
-  color: var(--failure);
+  color: var(--failure-text);
 }
 
 .meta {

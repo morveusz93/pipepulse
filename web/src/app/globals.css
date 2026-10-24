@@ -15,8 +15,9 @@
   --border-subtle: #1a1f26;
 
   --text: #e4e7eb;
-  --text-muted: #8a93a0;
-  --text-faint: #5b6471;
+  /* Both meet WCAG AA (4.5:1) on every surface, including the failure-tinted rows. */
+  --text-muted: #a1a9b5;
+  --text-faint: #828b98;
 
   --success: #3ec7a6;
   --failure: #f2716b;
@@ -27,6 +28,11 @@
   --failure-tint-strong: rgb(242 113 107 / 0.12);
   --running-tint: rgb(233 176 77 / 0.12);
   --success-tint: rgb(62 199 166 / 0.12);
+
+  /* Status colors used as text. Graphics (pulse, charts, dots) keep the vivid ones above. */
+  --success-text: var(--success);
+  --failure-text: var(--failure);
+  --running-text: var(--running);
 
   /* Non-status data (durations): must not be mistaken for a result color. */
   --chart-line: #9aa6ff;
@@ -47,8 +53,8 @@
   --border-subtle: #eceef2;
 
   --text: #14171c;
-  --text-muted: #5a6370;
-  --text-faint: #8d95a1;
+  --text-muted: #4a525e;
+  --text-faint: #636b77;
 
   --success: #0f9a7c;
   --failure: #d6493f;
@@ -59,6 +65,11 @@
   --failure-tint-strong: rgb(214 73 63 / 0.1);
   --running-tint: rgb(183 121 31 / 0.1);
   --success-tint: rgb(15 154 124 / 0.1);
+
+  /* Darker than the graphic colors so text clears 4.5:1 on white and on status tints. */
+  --success-text: #0a735d;
+  --failure-text: #b9362d;
+  --running-text: #8a570c;
 
   --chart-line: #4f5fd6;
   --chart-line-faint: #a3abe8;

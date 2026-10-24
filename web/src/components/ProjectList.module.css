@@ -152,7 +152,7 @@ summary.failure:focus-visible {
 }
 
 .job {
-  color: var(--failure);
+  color: var(--failure-text);
 }
 
 .excerpt {

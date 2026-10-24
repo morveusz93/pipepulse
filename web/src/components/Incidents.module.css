@@ -50,7 +50,7 @@
 }
 
 .openText {
-  color: var(--failure);
+  color: var(--failure-text);
 }
 
 .more,

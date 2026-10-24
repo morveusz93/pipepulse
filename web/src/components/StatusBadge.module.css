@@ -19,7 +19,7 @@
 }
 
 .failure {
-  color: var(--failure);
+  color: var(--failure-text);
 }
 
 .running .dot {

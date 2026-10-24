@@ -7,6 +7,19 @@ Monitor multiple GitLab projects from a single view — with history, trends, an
 ![status](https://img.shields.io/badge/status-in%20development-amber)
 [![CI](https://github.com/morveusz93/pipepulse/actions/workflows/ci.yml/badge.svg)](https://github.com/morveusz93/pipepulse/actions/workflows/ci.yml)
 
+**Live demo: [pipepulse.morv.dev](https://pipepulse.morv.dev)** (generated sample data, no GitLab token needed)
+
+![Dashboard: summary, project list with pulse bars, and an active failure expanded inline to its job log](docs/dashboard.png)
+
+<details>
+<summary>Project view and light theme</summary>
+
+![Project view: stats vs the previous window, duration and runs-per-day trends, incident history](docs/project.png)
+
+![Dashboard in the light theme](docs/dashboard-light.png)
+
+</details>
+
 ---
 
 ## Why
@@ -88,14 +101,14 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 - [x] Dockerfiles + Helm chart (tested on a local k3s cluster)
 - [x] CI (GitHub Actions)
 - [x] Frontend-only demo mode (snapshot of the real API)
-- [ ] Live demo on `pipepulse.morv.dev`
+- [x] Live demo on [pipepulse.morv.dev](https://pipepulse.morv.dev)
 - [ ] Prometheus metrics (optional)
 
 ---
 
 ## Demo
 
-The public demo is the dashboard alone, deployed on Vercel with `PIPEPULSE_DEMO=true`. It needs
+The [public demo](https://pipepulse.morv.dev) is the dashboard alone, deployed on Vercel with `PIPEPULSE_DEMO=true`. It needs
 no backend or database: it serves `web/src/demo/snapshot.json`, a snapshot recorded from the
 real API on generated data (6 projects, 60 days of history). Timestamps are shifted to "now" on
 every request, so the demo never looks stale.
