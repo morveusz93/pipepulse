@@ -4,7 +4,7 @@
 
 Monitor multiple GitLab projects from a single view — with history, trends, and inline failure logs.
 
-![status](https://img.shields.io/badge/status-in%20development-amber)
+[![demo](https://img.shields.io/badge/demo-live-2ea44f)](https://pipepulse.morv.dev)
 [![CI](https://github.com/morveusz93/pipepulse/actions/workflows/ci.yml/badge.svg)](https://github.com/morveusz93/pipepulse/actions/workflows/ci.yml)
 
 **Live demo: [pipepulse.morv.dev](https://pipepulse.morv.dev)** (generated sample data, no GitLab token needed)
@@ -26,10 +26,10 @@ Monitor multiple GitLab projects from a single view — with history, trends, an
 
 Most CI dashboards show only the current state. pipepulse stores pipeline history in Postgres and surfaces:
 
-- **Trends** — is your build getting slower? fail rate rising over 7/30 days?
-- **MTTR** — time between a failure and the next success on the same branch
+- **Trends** — is your build getting slower? fail rate rising? Compared with the previous 7/30/90 days
+- **MTTR** — time from a failure on the default branch to the next green pipeline, with incident history
 - **Inline failure logs** — expand a failed job's last N lines without leaving the dashboard
-- **Pulse** — a per-project EKG-style sparkline of the last 20 runs (color = result, height = duration)
+- **Pulse** — a per-project EKG-style strip of the last 20 runs: failures spike, passing runs are sized by duration
 
 Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-dashboard) and [ci-dashboard/gitlab-ci-dashboard](https://github.com/ci-dashboard/gitlab-ci-dashboard). pipepulse adds persistent history, trend analytics, and a premium-grade UI.
 
@@ -49,12 +49,12 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 
 ## Features (MVP)
 
-- Connect multiple GitLab projects via API token (`read_api` scope, stored encrypted)
-- Aggregate pipeline stats: count, success/fail rate, avg duration
+- Connect multiple GitLab projects via API token (`read_api` scope, validated and stored encrypted); self-hosted, through the REST API for now, UI in progress
+- Aggregate pipeline stats: runs, success rate, avg and p90 duration
 - Per-project view: trend chart, fail rate, MTTR
-- List of recent failures with inline job log preview
-- Filter/sort (e.g. failed only, by project, by date)
-- **Demo mode** — works out of the box with seed data, no token required
+- Inline job logs (ANSI colors, GitLab sections) under active failures and failed pipelines
+- Filter and sort pipelines by status, ref (default branch or all) and source; slowest first
+- **Demo mode** — works out of the box with generated data, no token required
 
 ---
 
