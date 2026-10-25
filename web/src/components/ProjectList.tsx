@@ -8,6 +8,7 @@ import {
   formatPercent,
   formatRelative,
 } from "@/lib/format";
+import { DeleteProjectButton } from "./DeleteProjectButton";
 import { LogViewer } from "./LogViewer";
 import { Pulse } from "./Pulse";
 import { StatusBadge } from "./StatusBadge";
@@ -42,15 +43,35 @@ export function ProjectList({
   /** Render time, for "12m ago". Passed in so rendering stays pure. */
   now: number;
 }) {
-  if (projects.length === 0) {
-    return (
-      <div className={styles.empty}>
-        No projects yet. Connect a GitLab instance and add projects to start
-        tracking pipelines.
-      </div>
-    );
-  }
+  const tracked = projects.filter((p) => !p.removed_at);
+  const removed = projects.filter((p) => p.removed_at);
 
+  return (
+    <>
+      {tracked.length === 0 ? (
+        <div className={styles.empty}>
+          No projects yet. Set <code>PIPEPULSE_GITLAB_TOKEN</code>; the worker picks up your
+          projects within a couple of minutes.
+        </div>
+      ) : (
+        <TrackedProjects projects={tracked} failures={failures} days={days} now={now} />
+      )}
+      {removed.length > 0 && <RemovedProjects projects={removed} now={now} />}
+    </>
+  );
+}
+
+function TrackedProjects({
+  projects,
+  failures,
+  days,
+  now,
+}: {
+  projects: ProjectRow[];
+  failures: Record<number, ActiveFailure>;
+  days: number;
+  now: number;
+}) {
   return (
     <section className={styles.table} aria-label="Projects">
       <div className={`${styles.row} ${styles.head}`} role="presentation">
@@ -153,5 +174,34 @@ function FailurePreview({
         />
       </div>
     </details>
+  );
+}
+
+/** Projects dropped from the configuration: no longer polled, history kept until deleted. */
+function RemovedProjects({ projects, now }: { projects: ProjectRow[]; now: number }) {
+  return (
+    <section className={styles.removed} aria-labelledby="removed-projects">
+      <h2 id="removed-projects" className={styles.removedTitle}>
+        Removed from configuration
+        <span className={styles.removedHint}>
+          not polled anymore; history is kept until you delete it
+        </span>
+      </h2>
+      {projects.map((project) => (
+        <div key={project.id} className={styles.removedRow}>
+          <Link href={`/projects/${project.id}`} className={styles.project}>
+            <span className={styles.name}>{project.name}</span>
+            <span className={styles.path}>{project.path_with_namespace}</span>
+          </Link>
+          <span className={styles.pulse}>
+            <Pulse runs={project.pulse} label={project.name} />
+          </span>
+          <span className={`${styles.muted} mono`}>
+            removed {formatRelative(project.removed_at!, now)}
+          </span>
+          <DeleteProjectButton projectId={project.id} path={project.path_with_namespace} />
+        </div>
+      ))}
+    </section>
   );
 }

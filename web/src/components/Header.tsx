@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { apiGet } from "@/lib/api";
-import type { AuthState } from "@/lib/types";
+import type { Meta } from "@/lib/types";
 import { ThemeToggle } from "./ThemeToggle";
 import styles from "./Header.module.css";
 
@@ -25,8 +25,8 @@ export function Header() {
 }
 
 async function ModeBadge() {
-  const auth = await apiGet<AuthState>("/api/auth/me").catch(() => null);
-  if (!auth?.demo_mode) return null;
+  const meta = await apiGet<Meta>("/api/meta").catch(() => null);
+  if (!meta?.demo_mode) return null;
   return (
     <span className={styles.badge} title="Generated sample data, no GitLab token involved">
       Demo data

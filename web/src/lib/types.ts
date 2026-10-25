@@ -50,6 +50,8 @@ export interface ProjectRow {
   default_branch: string | null;
   is_demo: boolean;
   last_polled_at: string | null;
+  /** Dropped from PIPEPULSE_PROJECTS: no longer polled, history kept until deleted. */
+  removed_at?: string | null;
   latest: PipelineBrief | null;
   active_failure: boolean;
   pulse: PulseRun[];
@@ -64,10 +66,8 @@ export interface Summary {
   stats: WindowStats;
 }
 
-export interface AuthState {
+export interface Meta {
   demo_mode: boolean;
-  admin_enabled: boolean;
-  authenticated: boolean;
 }
 
 export interface TrendPoint {

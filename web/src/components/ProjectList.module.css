@@ -189,3 +189,71 @@ summary.failure:hover .toggle,
     padding: 0 14px 14px;
   }
 }
+
+.empty code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.removed {
+  margin-top: 4px;
+  padding: 14px 20px 6px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.removedTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.removedHint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-faint);
+}
+
+.removedRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 160px auto auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 48px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.removedRow:first-of-type {
+  border-top: none;
+}
+
+/* Dimmed: these are history, not live status. */
+.removedRow .project,
+.removedRow .pulse {
+  opacity: 0.55;
+}
+
+.removedRow .project:hover {
+  opacity: 1;
+}
+
+@media (max-width: 560px) {
+  .removed {
+    padding: 12px 14px 4px;
+  }
+
+  .removedRow {
+    grid-template-columns: minmax(110px, 1fr) auto;
+  }
+
+  .removedRow > :nth-child(2),
+  .removedRow > :nth-child(3) {
+    display: none;
+  }
+}

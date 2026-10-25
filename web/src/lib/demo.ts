@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { connection } from "next/server";
 import { filterPipelines, shiftTimes, type Snapshot } from "./demo-core";
-import type { AuthState, JobLog, JobOut } from "./types";
+import type { JobLog, JobOut, Meta } from "./types";
 
 /**
  * Frontend-only demo: serves a snapshot exported from the real API
@@ -37,9 +37,7 @@ export async function demoGet(apiPath: string, params: Params = {}): Promise<unk
   const shift = <T>(value: T) => shiftTimes(value, now - Date.parse(snapshot.generated_at));
   const days = String(params.days ?? "");
 
-  if (apiPath === "/api/auth/me") {
-    return { demo_mode: true, admin_enabled: false, authenticated: false } satisfies AuthState;
-  }
+  if (apiPath === "/api/meta") return { demo_mode: true } satisfies Meta;
   if (apiPath === "/api/summary") return shift(snapshot.summary);
   if (apiPath === "/api/projects") {
     return shift(Object.values(snapshot.projects).map((p) => p.rows["7"]));

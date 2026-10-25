@@ -1,0 +1,115 @@
+.trigger {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--failure-text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.trigger:hover {
+  background: var(--failure-tint);
+  border-color: var(--failure-text);
+}
+
+.dialog {
+  width: min(460px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 24px 64px rgb(0 0 0 / 0.4);
+}
+
+.dialog::backdrop {
+  background: rgb(0 0 0 / 0.55);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.label code {
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+.input {
+  font: inherit;
+  font-family: var(--font-mono);
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--failure-text);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cancel,
+.danger {
+  font-size: 13px;
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.cancel {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.cancel:hover {
+  color: var(--text);
+}
+
+.danger {
+  border: 1px solid transparent;
+  background: var(--failure-text);
+  /* The surface color reads on the coral in both themes (white wouldn't in the dark one). */
+  color: var(--surface);
+  font-weight: 500;
+}
+
+.danger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

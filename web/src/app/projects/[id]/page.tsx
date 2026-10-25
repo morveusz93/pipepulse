@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { DeleteProjectButton } from "@/components/DeleteProjectButton";
 import { Incidents } from "@/components/Incidents";
 import {
   Pagination,
@@ -128,6 +129,21 @@ async function ProjectView({
           />
         </div>
       </header>
+
+      {project.removed_at && (
+        <div className={styles.removedBanner} role="status">
+          <span>
+            Removed from <code>PIPEPULSE_PROJECTS</code> on{" "}
+            {formatTimestamp(project.removed_at)} UTC. It&apos;s no longer polled; the history
+            below is kept until you delete it.
+          </span>
+          <DeleteProjectButton
+            projectId={project.id}
+            path={project.path_with_namespace}
+            afterDelete="home"
+          />
+        </div>
+      )}
 
       <StatsRow stats={stats} days={days} now={loadedAt} />
 
