@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "pipepulse",
-  description: "Pipeline health dashboard for GitLab: history, trends and inline failure logs.",
+  description: "Pipeline health dashboard for GitLab™: history, trends and inline failure logs.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

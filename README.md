@@ -1,6 +1,8 @@
 # pipepulse
 
-**Pipeline health dashboard for GitLab.**
+**Pipeline health dashboard for GitLab™.**
+
+<sub>GITLAB is a trademark of GitLab Inc. in the United States and other countries and regions. pipepulse is an independent project, not affiliated with, endorsed, sponsored or approved by GitLab Inc.</sub>
 
 Monitor multiple GitLab projects from a single view — with history, trends, and inline failure logs.
 
