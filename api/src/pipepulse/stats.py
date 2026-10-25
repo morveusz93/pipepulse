@@ -62,6 +62,8 @@ async def window_stats(
     until: datetime,
     scope: Scope,
     project_id: int | None = None,
+    *,
+    active_only: bool = False,
 ) -> WindowStats:
     stmt = (
         select(*_stats_columns())
@@ -70,6 +72,8 @@ async def window_stats(
     )
     if project_id is not None:
         stmt = stmt.where(Pipeline.project_id == project_id)
+    if active_only:
+        stmt = stmt.where(Project.removed_at.is_(None))
     return _to_stats(*(await session.execute(stmt)).one())
 
 
@@ -121,7 +125,13 @@ async def pulses(session: AsyncSession, scope: Scope) -> dict[int, list[PulseRun
 
 
 async def running_count(session: AsyncSession) -> int:
-    stmt = select(func.count()).select_from(Pipeline).where(Pipeline.status.in_(ACTIVE_STATUSES))
+    """Pipelines in progress across projects that are still tracked."""
+    stmt = (
+        select(func.count())
+        .select_from(Pipeline)
+        .join(Project)
+        .where(Pipeline.status.in_(ACTIVE_STATUSES), Project.removed_at.is_(None))
+    )
     return await session.scalar(stmt) or 0
 
 

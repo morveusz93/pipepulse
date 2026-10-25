@@ -15,6 +15,8 @@ class GitLabProject(_GitLabModel):
     path_with_namespace: str
     web_url: str
     default_branch: str | None = None
+    # Only in the full (non-"simple") representation; False when CI/CD is turned off.
+    jobs_enabled: bool | None = None
 
 
 class GitLabPipeline(_GitLabModel):

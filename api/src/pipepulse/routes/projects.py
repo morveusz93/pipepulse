@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, time, timedelta
 
 from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy import select
 
 from pipepulse import stats
@@ -22,15 +23,18 @@ router = APIRouter(prefix="/api", tags=["projects"])
 async def summary(
     session: SessionDep, now: NowDep, days: DaysQuery = 7, scope: ScopeQuery = "default"
 ) -> Summary:
+    # Projects removed from the configuration are listed apart and stay out of the summary.
     since = now - timedelta(days=days)
+    active = set(await session.scalars(select(Project.id).where(Project.removed_at.is_(None))))
     latest_finished = await stats.latest_default_branch(session, finished_only=True)
-    projects = await session.scalars(select(Project.id))
     return Summary(
         window_days=days,
-        projects=len(projects.all()),
-        active_failures=sum(p.status == "failed" for p in latest_finished.values()),
+        projects=len(active),
+        active_failures=sum(
+            p.status == "failed" for pid, p in latest_finished.items() if pid in active
+        ),
         running=await stats.running_count(session),
-        stats=await stats.window_stats(session, since, now, scope),
+        stats=await stats.window_stats(session, since, now, scope, active_only=True),
     )
 
 
@@ -88,6 +92,32 @@ async def project_trend(
     return await stats.daily_trend(session, project_id, since, now, scope)
 
 
+class DeleteConfirmation(BaseModel):
+    # The project's path, typed by the user: deleting history can't happen by a stray click.
+    confirm: str
+
+
+@router.delete("/projects/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_project(project_id: int, body: DeleteConfirmation, session: SessionDep) -> None:
+    """Permanently delete a project removed from the configuration, with all its history.
+
+    Only removed projects qualify, so the dashboard (which has no login) can never delete
+    a project that's still being tracked.
+    """
+    project = await _get_project_or_404(session, project_id)
+    if project.removed_at is None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Only projects removed from PIPEPULSE_PROJECTS can be deleted",
+        )
+    if body.confirm.strip() != project.path_with_namespace:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "Confirmation doesn't match the project path"
+        )
+    await session.delete(project)
+    await session.commit()
+
+
 async def _get_project_or_404(session: SessionDep, project_id: int) -> Project:
     project = await session.get(Project, project_id)
     if project is None:
@@ -120,7 +150,8 @@ async def _project_rows(
             path_with_namespace=p.path_with_namespace,
             web_url=p.web_url,
             default_branch=p.default_branch,
-            is_demo=p.connection_id is None,
+            is_demo=p.is_demo,
+            removed_at=p.removed_at,
             last_polled_at=p.last_polled_at,
             latest=PipelineBrief.model_validate(latest[p.id]) if p.id in latest else None,
             active_failure=p.id in latest_finished and latest_finished[p.id].status == "failed",

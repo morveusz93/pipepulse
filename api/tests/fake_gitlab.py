@@ -72,6 +72,18 @@ class FakeGitLab:
         }
         self.commits.setdefault(sha, f"commit {sha[:8]}")
 
+    def add_project(
+        self, project_id: int, path: str, default_branch: str = "main", *, ci: bool = True
+    ) -> None:
+        self.projects[project_id] = {
+            "id": project_id,
+            "name": path.rsplit("/", 1)[-1],
+            "path_with_namespace": path,
+            "web_url": f"https://gitlab.example.com/{path}",
+            "default_branch": default_branch,
+            "jobs_enabled": ci,
+        }
+
     def add_failed_job(self, pipeline_id: int, job_id: int, trace: str | None) -> None:
         self.failed_jobs.setdefault(pipeline_id, []).append(
             {

@@ -49,6 +49,8 @@ class ProjectRow(_Out):
     default_branch: str | None
     is_demo: bool
     last_polled_at: datetime | None
+    # Dropped from PIPEPULSE_PROJECTS: no longer polled, history kept until deleted.
+    removed_at: datetime | None
     latest: PipelineBrief | None
     # Newest finished default-branch pipeline is red.
     active_failure: bool

@@ -103,6 +103,18 @@ class GitLabClient:
             params["search"] = search
         return [GitLabProject.model_validate(p) for p in await self._get_json("/projects", params)]
 
+    async def iter_accessible_projects(self) -> AsyncIterator[GitLabProject]:
+        """Non-archived projects where the token's user can see pipelines (Reporter and up)."""
+        params = {
+            "min_access_level": 20,
+            "archived": "false",
+            "order_by": "id",
+            "sort": "asc",
+            "per_page": 100,
+        }
+        async for item in self._paginate("/projects", params):
+            yield GitLabProject.model_validate(item)
+
     async def get_project(self, project: ProjectRef) -> GitLabProject:
         return GitLabProject.model_validate(await self._get_json(_project_path(project)))
 

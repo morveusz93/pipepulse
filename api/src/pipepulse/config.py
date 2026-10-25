@@ -1,3 +1,4 @@
+import re
 from functools import lru_cache
 
 from pydantic import SecretStr
@@ -8,15 +9,18 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="PIPEPULSE_", env_file=".env", extra="ignore")
 
     database_url: str = "postgresql+psycopg://pipepulse:pipepulse@localhost:5432/pipepulse"
-    # Fernet key used to encrypt GitLab tokens at rest. Never commit a real one.
-    encryption_key: SecretStr | None = None
-    # Public demo instance: serve seed data only, never accept user tokens.
-    demo_mode: bool = True
-    # Self-hosted mode: single admin who manages GitLab connections. Unset = nobody can log in.
-    admin_password: SecretStr | None = None
-    session_ttl_hours: int = 12
-    # Browsers treat localhost as secure, so this can stay on for local development too.
-    cookie_secure: bool = True
+    # Internal: marks an instance serving generated demo data (seed). Not for regular use.
+    demo_mode: bool = False
+
+    # The GitLab instance and projects to track. The worker adds listed projects and marks the
+    # ones no longer listed as removed; their history goes once deleted from the dashboard.
+    gitlab_url: str = "https://gitlab.com"
+    # Personal/project/group access token with the read_api scope.
+    gitlab_token: SecretStr | None = None
+    # "group/project" paths, separated by commas, spaces or newlines. Empty = every project the
+    # token can see pipelines of (Reporter access and up, not archived, CI enabled).
+    projects: str = ""
+
     poll_interval_seconds: int = 120
     # How far back the first sync of a new project reaches.
     backfill_days: int = 30
@@ -29,6 +33,16 @@ class Settings(BaseSettings):
         "ondemand_dast_scan",
         "ondemand_dast_validation",
     }
+
+    @property
+    def project_paths(self) -> list[str]:
+        """Configured project paths, deduplicated case-insensitively, in the given order."""
+        seen: dict[str, str] = {}
+        for path in re.split(r"[\s,]+", self.projects):
+            path = path.strip().strip("/")
+            if path and path.lower() not in seen:
+                seen[path.lower()] = path
+        return list(seen.values())
 
 
 @lru_cache

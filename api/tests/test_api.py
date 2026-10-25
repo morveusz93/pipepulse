@@ -117,7 +117,7 @@ async def test_project_rows(client, data) -> None:
     pulse = [r["status"] for r in alpha["pulse"]]
     assert pulse == ["success", "success", "failed", "success", "running"]
     assert alpha["stats"]["runs"] == 4
-    assert alpha["is_demo"] is True
+    assert alpha["is_demo"] is False
 
     assert beta["active_failure"] is True
     assert [r["status"] for r in beta["pulse"]] == ["success", "failed"]
@@ -192,3 +192,53 @@ async def test_not_found(client, data, url: str) -> None:
 async def test_validates_window(client, data) -> None:
     assert (await client.get("/api/summary", params={"days": 0})).status_code == 422
     assert (await client.get("/api/summary", params={"scope": "nope"})).status_code == 422
+
+
+async def test_meta_reports_demo_mode(client, settings) -> None:
+    assert await get(client, "/api/meta") == {"demo_mode": False}
+    settings.demo_mode = True
+    assert await get(client, "/api/meta") == {"demo_mode": True}
+
+
+async def remove(session: AsyncSession, project: Project) -> None:
+    project.removed_at = NOW - timedelta(hours=1)
+    session.add(project)
+    await session.commit()
+
+
+async def test_removed_projects_are_listed_but_left_out_of_the_summary(
+    client, data, session: AsyncSession
+) -> None:
+    await remove(session, data["beta"])
+
+    body = await get(client, "/api/summary", days=7)
+    assert body["projects"] == 1
+    assert body["active_failures"] == 0  # beta's failure no longer counts
+    assert body["stats"]["runs"] == 4  # alpha only
+
+    rows = {r["name"]: r for r in await get(client, "/api/projects")}
+    assert rows["beta"]["removed_at"] is not None
+    assert rows["alpha"]["removed_at"] is None
+
+
+async def test_delete_requires_removed_project_and_typed_confirmation(
+    client, data, session: AsyncSession
+) -> None:
+    beta = data["beta"]
+    url = f"/api/projects/{beta.id}"
+
+    response = await client.request("DELETE", url, json={"confirm": "g/beta"})
+    assert response.status_code == 409  # still tracked
+
+    await remove(session, beta)
+    response = await client.request("DELETE", url, json={"confirm": "g/bet"})
+    assert response.status_code == 422
+
+    response = await client.request("DELETE", url, json={"confirm": " g/beta "})
+    assert response.status_code == 204
+    assert (await client.get(url)).status_code == 404
+    page = await get(client, "/api/pipelines", project_id=beta.id)
+    assert page["total"] == 0  # history went with it
+
+    response = await client.request("DELETE", url, json={"confirm": "g/beta"})
+    assert response.status_code == 404

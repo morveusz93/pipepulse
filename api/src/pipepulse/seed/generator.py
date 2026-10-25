@@ -36,14 +36,14 @@ async def seed_demo(
     trace_tail_lines: int = 50,
     seed: int = 42,
 ) -> SeedResult:
-    """Regenerate the history of demo projects (those without a connection).
+    """Regenerate the history of demo projects.
 
     Demo project rows are kept and updated in place, so their ids (and dashboard URLs) survive
     reseeding; only their pipelines are replaced. Commits nothing: the caller owns the
     transaction.
     """
     now = now or datetime.now(UTC)
-    demo = Project.connection_id.is_(None)
+    demo = Project.is_demo.is_(True)
     wanted = {profile.gitlab_project_id for profile in PROFILES}
     await session.execute(delete(Project).where(demo, Project.gitlab_project_id.not_in(wanted)))
     await session.execute(
@@ -54,7 +54,7 @@ async def seed_demo(
     projects: list[tuple[Project, ProjectProfile]] = []
     for profile in PROFILES:
         project = existing.get(profile.gitlab_project_id) or Project(
-            gitlab_project_id=profile.gitlab_project_id
+            gitlab_project_id=profile.gitlab_project_id, is_demo=True
         )
         project.path_with_namespace = f"acme/{profile.name}"
         project.name = profile.name

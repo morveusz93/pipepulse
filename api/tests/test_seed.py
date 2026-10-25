@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
-from pipepulse.models import Connection, Job, Pipeline, Project
+from pipepulse.models import Job, Pipeline, Project
 from pipepulse.seed.generator import seed_demo
 from pipepulse.seed.profiles import PROFILES
 
@@ -16,7 +16,7 @@ DAYS = 30
 async def load(session: AsyncSession) -> dict[str, list[Pipeline]]:
     projects = await session.scalars(
         select(Project)
-        .where(Project.connection_id.is_(None))
+        .where(Project.is_demo.is_(True))
         .options(selectinload(Project.pipelines).selectinload(Pipeline.failed_jobs))
     )
     return {p.name: sorted(p.pipelines, key=lambda pl: pl.created_at) for p in projects.unique()}
@@ -38,11 +38,7 @@ async def test_seed_is_deterministic(sessionmaker: async_sessionmaker[AsyncSessi
 
 
 async def test_seed_replaces_only_demo_projects(session: AsyncSession) -> None:
-    connection = Connection(
-        name="real", base_url="https://gitlab.com", token_encrypted=b"x", token_hint="abcd"
-    )
     real = Project(
-        connection=connection,
         gitlab_project_id=1001,  # same id as a demo project on purpose
         path_with_namespace="me/real",
         name="real",
