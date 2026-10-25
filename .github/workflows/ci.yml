@@ -68,4 +68,7 @@ jobs:
       - run: helm template pipepulse deploy/helm/pipepulse > /dev/null
       - run: >-
           helm template pipepulse deploy/helm/pipepulse
-          --set demo.enabled=false,postgres.enabled=false,secrets.existingSecret=app > /dev/null
+          --set demo.enabled=true > /dev/null
+      - run: >-
+          helm template pipepulse deploy/helm/pipepulse
+          --set postgres.enabled=false,secrets.existingSecret=app > /dev/null

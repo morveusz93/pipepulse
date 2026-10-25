@@ -5,9 +5,9 @@ image:
   pullPolicy: IfNotPresent
 imagePullSecrets: []
 
-# Public demo: generated history only, connection management disabled, nightly reseed.
+# Internal: serve generated demo data with a nightly reseed instead of tracking GitLab.
 demo:
-  enabled: true
+  enabled: false
   reseedSchedule: "0 3 * * *"
   historyDays: 60
 
@@ -16,12 +16,20 @@ config:
   backfillDays: 30
   traceTailLines: 50
 
-# Application secrets. Prefer `existingSecret` (keys: encryption-key, admin-password) created
-# out of band, e.g. `kubectl create secret generic ...`; never commit real values here.
+# GitLab instance and projects to track. Empty `projects` = every project the token can see
+# pipelines of. Dropped projects stop being polled; their history stays until deleted on the
+# dashboard.
+gitlab:
+  url: https://gitlab.com
+  projects: []
+  #  - group/api
+  #  - group/web
+
+# The GitLab token (read_api scope). Prefer `existingSecret` with key `gitlab-token`, created
+# out of band (`kubectl create secret generic ...`); never commit a real token here.
 secrets:
   existingSecret: ""
-  encryptionKey: ""
-  adminPassword: ""
+  gitlabToken: ""
 
 api:
   replicas: 1

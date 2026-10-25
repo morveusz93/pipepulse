@@ -46,17 +46,15 @@ app.kubernetes.io/component: {{ .component }}
       name: {{ include "pipepulse.secretName" . }}
       key: database-url
 {{- end }}
-- name: PIPEPULSE_ENCRYPTION_KEY
+- name: PIPEPULSE_GITLAB_URL
+  value: {{ .Values.gitlab.url | quote }}
+- name: PIPEPULSE_PROJECTS
+  value: {{ join "," .Values.gitlab.projects | quote }}
+- name: PIPEPULSE_GITLAB_TOKEN
   valueFrom:
     secretKeyRef:
       name: {{ include "pipepulse.secretName" . }}
-      key: encryption-key
-      optional: true
-- name: PIPEPULSE_ADMIN_PASSWORD
-  valueFrom:
-    secretKeyRef:
-      name: {{ include "pipepulse.secretName" . }}
-      key: admin-password
+      key: gitlab-token
       optional: true
 - name: PIPEPULSE_DEMO_MODE
   value: {{ .Values.demo.enabled | quote }}

@@ -49,7 +49,7 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 
 ## Features (MVP)
 
-- Connect multiple GitLab projects via API token (`read_api` scope, validated and stored encrypted); self-hosted, through the REST API for now, UI in progress
+- Track GitLab projects (gitlab.com or self-managed) with just a `read_api` token: every accessible project by default, or a chosen list
 - Aggregate pipeline stats: runs, success rate, avg and p90 duration
 - Per-project view: trend chart, fail rate, MTTR
 - Inline job logs (ANSI colors, GitLab sections) under active failures and failed pipelines
@@ -89,7 +89,6 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 - [x] Data model + migrations
 - [x] Background polling service
 - [x] API endpoints: projects, pipelines, aggregates, job log
-- [x] Token encryption (Fernet)
 - [x] Seed data for demo mode
 - [x] Frontend: design tokens, dark/light theme
 - [x] Pulse component
@@ -97,7 +96,7 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 - [x] Per-project view (trend chart, fail rate, MTTR)
 - [x] Inline log viewer
 - [x] Pipeline filters, sorting, pagination
-- [ ] Login + connection management UI (self-hosted)
+- [x] Configuration through environment variables (token, optional project list)
 - [x] Dockerfiles + Helm chart (tested on a local k3s cluster)
 - [x] CI (GitHub Actions)
 - [x] Frontend-only demo mode (snapshot of the real API)
@@ -158,9 +157,32 @@ DB-backed tests use a separate database. Create it once and they'll run against 
 docker compose exec postgres psql -U pipepulse -c 'CREATE DATABASE pipepulse_test'
 ```
 
-### Connecting your own GitLab (self-hosted)
+### Tracking your own GitLab projects
 
-Set in `.env`: `PIPEPULSE_DEMO_MODE=false`, `PIPEPULSE_ENCRYPTION_KEY` and `PIPEPULSE_ADMIN_PASSWORD`. Log in with `POST /api/auth/login`, then add a connection with a token that has the **`read_api`** scope (the full `api` scope works but isn't needed). Tokens are validated against GitLab, stored encrypted and only ever shown masked. Add projects to the connection and the worker backfills their history on its next cycle.
+1. Create an access token in GitLab (**Edit profile → Access tokens**) with the **`read_api`** scope.
+2. In `.env`:
+   ```bash
+   PIPEPULSE_GITLAB_URL=https://gitlab.com          # or your self-managed instance
+   PIPEPULSE_GITLAB_TOKEN=glpat-...
+   PIPEPULSE_PROJECTS=my-team/backend, my-team/frontend   # optional
+   ```
+   Leave `PIPEPULSE_PROJECTS` empty to track every project the token can see pipelines of
+   (Reporter access and up, not archived, CI enabled). To pick projects, list their paths from
+   the GitLab URL: `https://gitlab.com/my-team/backend` → `my-team/backend` (subgroups
+   included, e.g. `my-team/apps/mobile`).
+3. `docker compose up --build -d` and open http://localhost:3000.
+
+The worker checks the token's scopes at startup, then every 2 minutes picks up new projects
+(backfilling 30 days of history) and syncs pipelines and failed job logs. Follow it with
+`docker compose logs -f worker`. Changing `.env` needs `docker compose up -d` to take effect.
+
+A project that's no longer configured (or no longer accessible) isn't deleted: it stops being
+polled and moves to a "Removed from configuration" section on the dashboard, history intact.
+Configure it again and it resumes; or delete it there, confirming with its path, to drop its
+history for good.
+
+The dashboard has no login, and job logs can contain sensitive output: keep it on a private
+network, or put it behind your reverse proxy's authentication.
 
 API docs: http://localhost:8000/api/docs
 

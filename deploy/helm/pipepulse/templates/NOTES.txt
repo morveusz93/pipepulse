@@ -6,7 +6,8 @@ pipepulse {{ .Values.image.tag }} is deployed.
 {{- end }}
 
 {{- if .Values.demo.enabled }}
-Demo mode: generated history, reseeded on "{{ .Values.demo.reseedSchedule }}". Token management is disabled.
+Demo mode: generated history, reseeded on "{{ .Values.demo.reseedSchedule }}".
 {{- else }}
-Self-hosted mode. Admin login needs encryption-key and admin-password in secret {{ include "pipepulse.secretName" . }}.
+Tracking {{ if .Values.gitlab.projects }}{{ len .Values.gitlab.projects }} project(s){{ else }}every accessible project{{ end }} on {{ .Values.gitlab.url }}; the token is read from secret {{ include "pipepulse.secretName" . }} (key gitlab-token).
+Follow the worker: kubectl -n {{ .Release.Namespace }} logs -f deploy/{{ include "pipepulse.fullname" . }}-worker
 {{- end }}

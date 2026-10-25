@@ -22,16 +22,13 @@ docker build -t <registry>/pipepulse/web:<tag> web
 docker push <registry>/pipepulse/api:<tag> && docker push <registry>/pipepulse/web:<tag>
 ```
 
-## 2. Secrets
+## 2. GitLab token
 
-Tokens are encrypted with a Fernet key; the admin password protects connection management.
-Create both out of band, never in values files:
+A token with the `read_api` scope, as a Secret created out of band (never in values files):
 
 ```bash
 kubectl create namespace pipepulse
-kubectl -n pipepulse create secret generic pipepulse-secrets \
-  --from-literal=encryption-key="$(python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" \
-  --from-literal=admin-password='<choose one>'
+kubectl -n pipepulse create secret generic pipepulse-secrets --from-literal=gitlab-token='glpat-...'
 ```
 
 ## 3. Install
@@ -39,12 +36,18 @@ kubectl -n pipepulse create secret generic pipepulse-secrets \
 ```bash
 helm upgrade --install pipepulse helm/pipepulse -n pipepulse \
   --set image.repository=<registry>/pipepulse --set image.tag=<tag> \
-  --set demo.enabled=false --set secrets.existingSecret=pipepulse-secrets \
+  --set secrets.existingSecret=pipepulse-secrets \
+  --set gitlab.url=https://gitlab.com \
   --set ingress.host=pipepulse.example.com
 ```
 
-Then log in, add a GitLab connection with a `read_api` token and pick projects; the worker
-backfills their history on its next cycle.
+The worker picks up every project the token can see pipelines of within a couple of minutes
+and backfills 30 days of history; `kubectl -n pipepulse logs -f deploy/pipepulse-worker` shows
+its progress. To track only some, set e.g. `--set 'gitlab.projects={group/api,group/web}'`.
+Projects you drop stop being polled and keep their history until deleted on the dashboard.
+
+The dashboard has no login and job logs can contain sensitive output: restrict the Ingress
+(e.g. an auth middleware or an internal-only host) rather than exposing it publicly.
 
 TLS: with [cert-manager](https://cert-manager.io) installed, apply `cluster/cluster-issuer.yaml`
 (set your email first) and keep `ingress.tls.clusterIssuer: letsencrypt`. Otherwise set
@@ -62,9 +65,7 @@ k3d cluster create pipepulse -p "8088:80@loadbalancer"
 k3d image import localhost/pipepulse/api:dev localhost/pipepulse/web:dev -c pipepulse
 helm install pp helm/pipepulse -n pipepulse --create-namespace \
   --set image.repository=localhost/pipepulse,image.tag=dev,image.pullPolicy=Never \
-  --set ingress.host=pipepulse.localhost,ingress.tls.enabled=false --wait
+  --set ingress.host=pipepulse.localhost,ingress.tls.enabled=false \
+  --set secrets.gitlabToken=glpat-... --set 'gitlab.projects={my-team/backend}' --wait
 open http://pipepulse.localhost:8088
 ```
-
-That installs the demo variant (generated data, nightly reseed); add the flags from step 3 for
-a real setup.
