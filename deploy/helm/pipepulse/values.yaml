@@ -31,6 +31,11 @@ secrets:
   existingSecret: ""
   gitlabToken: ""
 
+# /metrics on the API service (not routed by the Ingress). Annotations let Prometheus setups
+# that discover pods by annotation scrape it without further config.
+metrics:
+  scrapeAnnotations: true
+
 api:
   replicas: 1
   resources:

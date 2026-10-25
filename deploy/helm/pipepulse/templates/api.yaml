@@ -30,6 +30,12 @@ spec:
     metadata:
       labels:
         {{- include "pipepulse.selector" $component | nindent 8 }}
+      {{- if .Values.metrics.scrapeAnnotations }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: /metrics
+      {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

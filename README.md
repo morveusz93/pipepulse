@@ -103,7 +103,7 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 - [x] CI (GitHub Actions)
 - [x] Frontend-only demo mode (snapshot of the real API)
 - [x] Live demo on [pipepulse.morv.dev](https://pipepulse.morv.dev)
-- [ ] Prometheus metrics (optional)
+- [x] Prometheus metrics
 
 ---
 
@@ -187,6 +187,16 @@ The dashboard has no login, and job logs can contain sensitive output: keep it o
 network, or put it behind your reverse proxy's authentication.
 
 API docs: http://localhost:8000/api/docs
+
+### Prometheus metrics
+
+`GET /metrics` on the API (port 8000, deliberately not under `/api`, so the dashboard's
+public routes never expose it) serves per-project gauges computed from the stored history:
+`pipepulse_project_failing`, `_running_pipelines`, `_pipelines{status}`, `_success_ratio`,
+`_duration_avg_seconds`, `_duration_p90_seconds`, `_mttr_median_seconds` (default branches,
+7-day window, `?days=` to change) and `_last_polled_timestamp_seconds`, which makes a good
+staleness alert, e.g. `time() - pipepulse_project_last_polled_timestamp_seconds > 900`.
+The Helm chart annotates the API pods for annotation-based scraping.
 
 Repo layout: `api/` (FastAPI + poller), `web/` (Next.js dashboard), `deploy/` (Helm chart and [self-hosting guide](deploy/README.md)).
 

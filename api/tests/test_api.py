@@ -3,6 +3,7 @@ from itertools import count
 
 import httpx
 import pytest
+from prometheus_client.parser import text_string_to_metric_families
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pipepulse.models import Job, Pipeline, Project
@@ -242,3 +243,32 @@ async def test_delete_requires_removed_project_and_typed_confirmation(
 
     response = await client.request("DELETE", url, json={"confirm": "g/beta"})
     assert response.status_code == 404
+
+
+async def test_prometheus_metrics(client, data, session: AsyncSession) -> None:
+    response = await client.get("/metrics")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/plain")
+    samples = {
+        (sample.name, tuple(sorted(sample.labels.items()))): sample.value
+        for family in text_string_to_metric_families(response.text)
+        for sample in family.samples
+    }
+
+    def value(name: str, **labels: str) -> float:
+        return samples[(name, tuple(sorted(labels.items())))]
+
+    alpha = {"project": "g/alpha"}
+    assert value("pipepulse_project_failing", **alpha) == 0
+    assert value("pipepulse_project_failing", project="g/beta") == 1
+    assert value("pipepulse_project_running_pipelines", **alpha) == 1
+    assert value("pipepulse_project_pipelines", **alpha, window="7d", status="success") == 2
+    assert value("pipepulse_project_pipelines", **alpha, window="7d", status="other") == 1
+    assert value("pipepulse_project_success_ratio", **alpha, window="7d") == 2 / 3
+    assert value("pipepulse_project_duration_avg_seconds", **alpha, window="7d") == 150
+    assert value("pipepulse_project_mttr_median_seconds", **alpha, window="7d") == 86400 + 150
+
+    # Removed projects disappear from the metrics like they do from the summary.
+    await remove(session, data["beta"])
+    body = (await client.get("/metrics")).text
+    assert 'project="g/beta"' not in body

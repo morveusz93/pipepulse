@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from pipepulse import __version__
-from pipepulse.routes import health, meta, pipelines, projects
+from pipepulse.routes import health, meta, metrics, pipelines, projects
 
 
 def create_app() -> FastAPI:
@@ -17,6 +17,7 @@ def create_app() -> FastAPI:
     app.include_router(projects.router)
     app.include_router(pipelines.router)
     app.include_router(meta.router)
+    app.include_router(metrics.router)
     return app
 
 
