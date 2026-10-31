@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from collections import deque
 from collections.abc import AsyncIterator, Iterable
 from datetime import datetime
@@ -22,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 RETRYABLE_STATUSES = frozenset({429, 502, 503, 504})
 MAX_RETRY_AFTER_S = 60.0
+# gitlab.com's free plan allows ~100 API requests per user per short window, shared by every
+# endpoint. Below this many remaining, wait for the window to reset instead of earning a 429.
+PACE_BELOW_REMAINING = 5
 
 
 class GitLabError(Exception):
@@ -72,6 +76,7 @@ class GitLabClient:
         )
         self._max_retries = max_retries
         self._backoff_base = backoff_base
+        self._pause_until = 0.0
 
     async def __aenter__(self) -> Self:
         return self
@@ -205,6 +210,7 @@ class GitLabClient:
         """
         request = self._http.build_request(method, path, params=params)
         for attempt in range(self._max_retries + 1):
+            await self._wait_for_rate_limit()
             try:
                 response = await self._http.send(request, stream=True)
             except httpx.TransportError as exc:
@@ -213,6 +219,7 @@ class GitLabClient:
                 await asyncio.sleep(self._backoff_base * 2**attempt)
                 continue
 
+            self._note_rate_limit(response)
             if response.status_code in RETRYABLE_STATUSES and attempt < self._max_retries:
                 await response.aclose()
                 delay = self._retry_delay(response, attempt)
@@ -232,6 +239,25 @@ class GitLabClient:
             raise self._error_for(method, path, response.status_code)
 
         raise AssertionError("unreachable")
+
+    def _note_rate_limit(self, response: httpx.Response) -> None:
+        """Remember to pause before the next request when the rate-limit window is nearly used."""
+        remaining = response.headers.get("ratelimit-remaining")
+        reset = response.headers.get("ratelimit-reset")
+        if remaining is None or reset is None:
+            return
+        try:
+            if int(remaining) < PACE_BELOW_REMAINING:
+                self._pause_until = min(float(reset), time.time() + MAX_RETRY_AFTER_S)
+        except ValueError:
+            pass
+
+    async def _wait_for_rate_limit(self) -> None:
+        delay = self._pause_until - time.time()
+        if delay > 0:
+            logger.info("Close to GitLab's API rate limit, pausing %.0fs", delay)
+            await asyncio.sleep(delay)
+        self._pause_until = 0.0
 
     def _retry_delay(self, response: httpx.Response, attempt: int) -> float:
         retry_after = response.headers.get("retry-after")

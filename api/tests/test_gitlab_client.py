@@ -1,3 +1,4 @@
+import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 
@@ -188,3 +189,31 @@ async def test_error_message_never_contains_token() -> None:
             await client.get_project(1)
 
     assert "glpat-secret" not in str(exc_info.value)
+
+
+@pytest.mark.parametrize(("remaining", "expect_pause"), [("2", True), ("80", False)])
+async def test_pauses_before_exhausting_the_rate_limit(
+    monkeypatch: pytest.MonkeyPatch, remaining: str, expect_pause: bool
+) -> None:
+    slept: list[float] = []
+
+    async def fake_sleep(delay: float) -> None:
+        slept.append(delay)
+
+    monkeypatch.setattr("pipepulse.gitlab.client.asyncio.sleep", fake_sleep)
+    reset = str(int(time.time()) + 30)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        headers = {"ratelimit-remaining": remaining, "ratelimit-reset": reset}
+        return httpx.Response(200, json=[], headers={**headers, "x-next-page": ""})
+
+    async with make_client(handler) as client:
+        [p async for p in client.iter_pipelines(1)]  # first request: learns the budget
+        assert slept == []
+        [p async for p in client.iter_pipelines(1)]  # second request: may have to wait
+
+    if expect_pause:
+        [delay] = slept
+        assert 25 < delay <= 30
+    else:
+        assert slept == []
