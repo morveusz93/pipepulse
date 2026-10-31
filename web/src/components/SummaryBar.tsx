@@ -10,9 +10,9 @@ export function SummaryBar({ summary, projects }: { summary: Summary; projects: 
     <StatStrip label="Summary">
       <Stat label="Projects" value={String(summary.projects)}>
         {summary.running > 0 ? (
-          <Tone tone="running">{summary.running} running now</Tone>
+          <Tone tone="running">{summary.running} in progress</Tone>
         ) : (
-          "none running"
+          "nothing in progress"
         )}
       </Stat>
       <Stat

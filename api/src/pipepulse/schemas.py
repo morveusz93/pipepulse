@@ -62,6 +62,7 @@ class Summary(BaseModel):
     window_days: int
     projects: int
     active_failures: int
+    # Pipelines not finished yet: running, pending or otherwise queued.
     running: int
     stats: WindowStats
 
