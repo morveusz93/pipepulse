@@ -26,6 +26,8 @@ class FakeGitLab:
         self.failed_jobs: dict[int, list[dict[str, Any]]] = {}
         self.traces: dict[int, str | None] = {}  # None => 401, like anonymous trace access
         self.commits: dict[str, str] = {}
+        # Commits left out of the listing endpoint (e.g. older than `since`, or from a fork).
+        self.unlisted_commits: set[str] = set()
         self.calls: Counter[str] = Counter()
         # int => that HTTP status instead of a body
         self.token_info: dict[str, Any] | int = {
@@ -140,6 +142,14 @@ class FakeGitLab:
         if m := re.fullmatch(rf"{BASE}/pipelines/(\d+)", path):
             self.calls["detail"] += 1
             return httpx.Response(200, json=self.pipelines[int(m[1])])
+        if path == f"{BASE}/repository/commits":
+            self.calls["commit_list"] += 1
+            listed = [
+                {"id": sha, "short_id": sha[:8], "title": title}
+                for sha, title in self.commits.items()
+                if sha not in self.unlisted_commits
+            ]
+            return httpx.Response(200, json=listed, headers={"x-next-page": ""})
         if m := re.fullmatch(rf"{BASE}/repository/commits/(\w+)", path):
             self.calls["commit"] += 1
             return httpx.Response(

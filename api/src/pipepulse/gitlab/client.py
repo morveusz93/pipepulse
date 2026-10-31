@@ -143,6 +143,14 @@ class GitLabClient:
         params = {"scope[]": list(scope), "per_page": 100}
         return [GitLabJob.model_validate(item) async for item in self._paginate(path, params)]
 
+    async def iter_commits(
+        self, project: ProjectRef, *, since: datetime
+    ) -> AsyncIterator[GitLabCommit]:
+        """Commits on every branch since a date, newest first (100 per request)."""
+        params = {"all": "true", "since": since.isoformat(), "per_page": 100}
+        async for item in self._paginate(f"{_project_path(project)}/repository/commits", params):
+            yield GitLabCommit.model_validate(item)
+
     async def get_commit(self, project: ProjectRef, sha: str) -> GitLabCommit:
         data = await self._get_json(f"{_project_path(project)}/repository/commits/{sha}")
         return GitLabCommit.model_validate(data)

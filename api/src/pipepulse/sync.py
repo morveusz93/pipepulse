@@ -60,6 +60,8 @@ class _ProjectSync:
         self.options = options
         self.result = SyncResult()
         self._commit_titles: dict[str, str | None] = {}
+        self._commits_listed = False
+        self._since: datetime | None = None
 
     @property
     def _gitlab_id(self) -> int:
@@ -71,6 +73,7 @@ class _ProjectSync:
             if self.project.last_polled_at
             else started - timedelta(days=self.options.backfill_days)
         )
+        self._since = since
         stored = await self._stored_pipelines(since)
 
         async for summary in self.client.iter_pipelines(self._gitlab_id, updated_after=since):
@@ -100,6 +103,10 @@ class _ProjectSync:
         return {gitlab_id: (status, title) for gitlab_id, status, title in rows}
 
     async def _commit_title(self, sha: str) -> str | None:
+        # One paginated listing covers most pipelines; per-commit lookups only for the rest
+        # (older commits re-run, fork MRs). Per-commit requests hit gitlab.com's rate limit fast.
+        if sha not in self._commit_titles and not self._commits_listed:
+            await self._list_commits()
         if sha not in self._commit_titles:
             try:
                 commit = await self.client.get_commit(self._gitlab_id, sha)
@@ -111,6 +118,20 @@ class _ProjectSync:
                 )
                 self._commit_titles[sha] = None
         return self._commit_titles[sha]
+
+    async def _list_commits(self) -> None:
+        self._commits_listed = True
+        if self._since is None:
+            return
+        try:
+            async for commit in self.client.iter_commits(self._gitlab_id, since=self._since):
+                self._commit_titles.setdefault(commit.id, commit.title)
+        except GitLabError as exc:
+            logger.info(
+                "Listing commits of %s failed (%s), looking them up one by one",
+                self.project.path_with_namespace,
+                exc,
+            )
 
     async def _upsert_pipeline(self, detail: GitLabPipelineDetail, commit_title: str | None) -> int:
         values = {

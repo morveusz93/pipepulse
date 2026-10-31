@@ -60,7 +60,8 @@ async def test_initial_sync_backfills_window_and_stores_failures(
     assert stored[3].commit_title == "commit bbbbbbbb"
     assert stored[3].duration_s == 120
     assert stored[3].queued_duration_s == 3
-    assert gitlab.calls["commit"] == 1  # same sha fetched once
+    # Titles come from one commit listing, not a request per pipeline.
+    assert (gitlab.calls["commit_list"], gitlab.calls["commit"]) == (1, 0)
     [job] = await jobs(session)
     assert (job.gitlab_job_id, job.trace_tail, job.duration_s) == (301, "line 2\nERROR: boom", 30)
     assert project.last_polled_at == NOW
@@ -123,3 +124,30 @@ async def test_missing_trace_keeps_job_without_log(session: AsyncSession, projec
     [job] = await jobs(session)
     assert job.trace_tail is None
     assert result.traces_missing == 1
+
+
+async def test_commit_missing_from_listing_is_looked_up_once(
+    session: AsyncSession, project: Project
+) -> None:
+    gitlab = FakeGitLab()
+    gitlab.add_pipeline(1, "success", NOW - timedelta(hours=2), sha="c" * 40)
+    gitlab.add_pipeline(2, "success", NOW - timedelta(hours=1), sha="c" * 40)
+    gitlab.unlisted_commits.add("c" * 40)  # e.g. an older commit re-run today
+
+    await sync(session, gitlab, project, NOW)
+
+    assert (gitlab.calls["commit_list"], gitlab.calls["commit"]) == (1, 1)
+    assert {p.commit_title for p in (await pipelines(session)).values()} == {"commit cccccccc"}
+
+
+async def test_no_commit_requests_when_nothing_changed(
+    session: AsyncSession, project: Project
+) -> None:
+    gitlab = FakeGitLab()
+    gitlab.add_pipeline(1, "success", NOW - timedelta(minutes=3))
+    await sync(session, gitlab, project, NOW)
+    gitlab.calls.clear()
+
+    await sync(session, gitlab, project, NOW + timedelta(minutes=1))
+
+    assert gitlab.calls["commit_list"] == gitlab.calls["commit"] == 0
