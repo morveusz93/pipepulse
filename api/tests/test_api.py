@@ -272,3 +272,20 @@ async def test_prometheus_metrics(client, data, session: AsyncSession) -> None:
     await remove(session, data["beta"])
     body = (await client.get("/metrics")).text
     assert 'project="g/beta"' not in body
+
+
+async def test_projects_without_pipelines_hidden_when_tracking_everything(
+    client, data, session: AsyncSession, settings
+) -> None:
+    session.add(project("empty", default_branch="main"))
+    await session.commit()
+
+    names = {r["name"] for r in await get(client, "/api/projects")}
+    assert "empty" not in names
+    assert (await get(client, "/api/summary"))["projects"] == 2
+
+    # With an explicit list the user asked for it, so it shows up (empty).
+    settings.projects = "g/alpha, g/beta, g/empty"
+    names = {r["name"] for r in await get(client, "/api/projects")}
+    assert "empty" in names
+    assert (await get(client, "/api/summary"))["projects"] == 3

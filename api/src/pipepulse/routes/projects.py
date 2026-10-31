@@ -2,11 +2,12 @@ from datetime import UTC, datetime, time, timedelta
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import ColumnElement, exists, select
 
 from pipepulse import stats
-from pipepulse.deps import DaysQuery, NowDep, ScopeQuery, SessionDep
-from pipepulse.models import Project
+from pipepulse.config import Settings
+from pipepulse.deps import DaysQuery, NowDep, ScopeQuery, SessionDep, SettingsDep
+from pipepulse.models import Pipeline, Project
 from pipepulse.schemas import (
     PipelineBrief,
     ProjectRow,
@@ -21,11 +22,19 @@ router = APIRouter(prefix="/api", tags=["projects"])
 
 @router.get("/summary")
 async def summary(
-    session: SessionDep, now: NowDep, days: DaysQuery = 7, scope: ScopeQuery = "default"
+    session: SessionDep,
+    now: NowDep,
+    settings: SettingsDep,
+    days: DaysQuery = 7,
+    scope: ScopeQuery = "default",
 ) -> Summary:
     # Projects removed from the configuration are listed apart and stay out of the summary.
     since = now - timedelta(days=days)
-    active = set(await session.scalars(select(Project.id).where(Project.removed_at.is_(None))))
+    active = set(
+        await session.scalars(
+            select(Project.id).where(Project.removed_at.is_(None), *_listed(settings))
+        )
+    )
     latest_finished = await stats.latest_default_branch(session, finished_only=True)
     return Summary(
         window_days=days,
@@ -40,9 +49,13 @@ async def summary(
 
 @router.get("/projects")
 async def list_projects(
-    session: SessionDep, now: NowDep, days: DaysQuery = 7, scope: ScopeQuery = "default"
+    session: SessionDep,
+    now: NowDep,
+    settings: SettingsDep,
+    days: DaysQuery = 7,
+    scope: ScopeQuery = "default",
 ) -> list[ProjectRow]:
-    return await _project_rows(session, now, days, scope)
+    return await _project_rows(session, now, days, scope, where=_listed(settings))
 
 
 @router.get("/projects/{project_id}")
@@ -118,6 +131,14 @@ async def delete_project(project_id: int, body: DeleteConfirmation, session: Ses
     await session.commit()
 
 
+def _listed(settings: Settings) -> list[ColumnElement[bool]]:
+    """Filters for project lists. When every accessible project is tracked (no explicit
+    PIPEPULSE_PROJECTS), repositories that never ran a pipeline would only add empty rows."""
+    if settings.project_paths:
+        return []
+    return [exists().where(Pipeline.project_id == Project.id)]
+
+
 async def _get_project_or_404(session: SessionDep, project_id: int) -> Project:
     project = await session.get(Project, project_id)
     if project is None:
@@ -132,8 +153,9 @@ async def _project_rows(
     scope: ScopeQuery,
     *,
     project_id: int | None = None,
+    where: list[ColumnElement[bool]] | None = None,
 ) -> list[ProjectRow]:
-    query = select(Project).order_by(Project.name)
+    query = select(Project).where(*(where or [])).order_by(Project.name)
     if project_id is not None:
         query = query.where(Project.id == project_id)
     projects = (await session.scalars(query)).all()

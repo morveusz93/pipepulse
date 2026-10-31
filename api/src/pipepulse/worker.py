@@ -18,7 +18,7 @@ from pipepulse.config import Settings, get_settings
 from pipepulse.db import get_sessionmaker
 from pipepulse.gitlab import GitLabAuthError, GitLabClient, GitLabError, GitLabNotFoundError
 from pipepulse.gitlab.schemas import GitLabProject
-from pipepulse.models import Project
+from pipepulse.models import Pipeline, Project
 from pipepulse.sync import SyncOptions, sync_project
 
 logger = logging.getLogger("pipepulse.worker")
@@ -79,14 +79,26 @@ async def reconcile_projects(
                 project.removed_at = None
         # Finding nothing at all (a typo, a token that lost access) must not flag every project.
         if wanted:
-            for project in tracked:
-                if id(project) not in keep and project.removed_at is None:
-                    logger.warning(
-                        "%s is no longer configured: stopped polling, history kept until "
-                        "deleted from the dashboard",
-                        project.path_with_namespace,
-                    )
-                    project.removed_at = now
+            dropped = [p for p in tracked if id(p) not in keep and p.removed_at is None]
+            with_history = set(
+                await session.scalars(
+                    select(Pipeline.project_id)
+                    .where(Pipeline.project_id.in_([p.id for p in dropped]))
+                    .distinct()
+                )
+            )
+            for project in dropped:
+                if project.id not in with_history:
+                    # Nothing to keep, so nothing for the user to confirm.
+                    logger.info("%s is no longer configured, removed", project.path_with_namespace)
+                    await session.delete(project)
+                    continue
+                logger.warning(
+                    "%s is no longer configured: stopped polling, history kept until "
+                    "deleted from the dashboard",
+                    project.path_with_namespace,
+                )
+                project.removed_at = now
         await session.commit()
         return [p.id for p in wanted]
 

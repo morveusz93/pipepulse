@@ -169,7 +169,8 @@ docker compose exec postgres psql -U pipepulse -c 'CREATE DATABASE pipepulse_tes
    PIPEPULSE_PROJECTS=my-team/backend, my-team/frontend   # optional
    ```
    Leave `PIPEPULSE_PROJECTS` empty to track every project the token can see pipelines of
-   (Reporter access and up, not archived, CI enabled). To pick projects, list their paths from
+   (Reporter access and up, not archived, CI enabled); ones that never ran a pipeline stay
+   off the dashboard until they do. To pick projects, list their paths from
    the GitLab URL: `https://gitlab.com/my-team/backend` → `my-team/backend` (subgroups
    included, e.g. `my-team/apps/mobile`).
 3. `docker compose up --build -d` and open http://localhost:3000.

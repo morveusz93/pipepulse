@@ -26,6 +26,23 @@ def tracked_project(gitlab_id: int, path: str, *, demo: bool = False) -> Project
     )
 
 
+async def give_history(session: AsyncSession, path: str) -> None:
+    project = (await projects(session))[path]
+    session.add(
+        Pipeline(
+            project_id=project.id,
+            gitlab_pipeline_id=project.id,
+            status="success",
+            ref="main",
+            sha="a" * 40,
+            web_url="https://gitlab.example.com/p",
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        )
+    )
+    await session.commit()
+
+
 async def projects(session: AsyncSession) -> dict[str, Project]:
     session.expire_all()
     return {p.path_with_namespace: p for p in await session.scalars(select(Project))}
@@ -120,6 +137,7 @@ async def test_reconfigured_project_is_restored(
     sessionmaker: async_sessionmaker[AsyncSession], session: AsyncSession
 ) -> None:
     await reconcile(sessionmaker, FakeGitLab(), ["g/p"])
+    await give_history(session, "g/p")
     gitlab = FakeGitLab()
     gitlab.add_project(7, "group/web")
     await reconcile(sessionmaker, gitlab, ["group/web"])
@@ -155,11 +173,23 @@ async def test_empty_list_tracks_every_accessible_project_with_ci(
     assert set(stored) == {"g/p", "group/web"}
     assert sorted(ids) == sorted(p.id for p in stored.values())
 
-    # Losing access to a project marks it removed on the next cycle.
+    # Losing access to a project with history marks it removed on the next cycle.
+    await give_history(session, "group/web")
     del gitlab.projects[7]
     ids = await reconcile(sessionmaker, gitlab, [])
     assert (await projects(session))["group/web"].removed_at is not None
     assert len(ids) == 1
+
+
+async def test_dropped_project_without_history_is_deleted_outright(
+    sessionmaker: async_sessionmaker[AsyncSession], session: AsyncSession
+) -> None:
+    session.add(tracked_project(99, "group/never-ran-ci"))
+    await session.commit()
+
+    await reconcile(sessionmaker, FakeGitLab(), ["g/p"])
+
+    assert set(await projects(session)) == {"g/p"}
 
 
 async def test_renamed_project_keeps_its_history(
