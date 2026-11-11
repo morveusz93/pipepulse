@@ -206,3 +206,5 @@ Repo layout: `api/` (FastAPI + poller), `web/` (Next.js dashboard), `deploy/` (H
 ## License
 
 MIT
+
+Built by [Mateusz Portka](https://morv.dev/en), Python backend developer and Tech Lead.
