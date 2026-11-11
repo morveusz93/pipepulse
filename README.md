@@ -142,6 +142,8 @@ helm install pipepulse oci://ghcr.io/morveusz93/charts/pipepulse \
   -n pipepulse --create-namespace --set demo.enabled=true
 ```
 
+![helm install in demo mode on a local k3d cluster: four pods running, six demo projects served by the API](docs/install.gif)
+
 Against your GitLab, with a `read_api` token stored in a Secret:
 
 ```bash
