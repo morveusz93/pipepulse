@@ -47,7 +47,7 @@ helm upgrade --install pipepulse oci://ghcr.io/morveusz93/charts/pipepulse -n pi
   --set ingress.host=pipepulse.example.com
 ```
 
-Pin a version with `--version 0.2.0`; each chart version runs the images of the same version.
+Pin a version with `--version 0.2.1`; each chart version runs the images of the same version.
 
 The worker picks up every project the token can see pipelines of within a couple of minutes
 and backfills 30 days of history; `kubectl -n pipepulse logs -f deploy/pipepulse-worker` shows
