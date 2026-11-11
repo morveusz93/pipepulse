@@ -72,3 +72,43 @@ jobs:
       - run: >-
           helm template pipepulse deploy/helm/pipepulse
           --set postgres.enabled=false,secrets.existingSecret=app > /dev/null
+
+  # Installs the chart on a throwaway kind cluster in demo mode (no GitLab token) and checks
+  # that the API serves seeded data and the dashboard renders it.
+  helm-install:
+    needs: helm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build images
+        run: |
+          docker build -t local/pipepulse/api:ci api
+          docker build -t local/pipepulse/web:ci web
+      - uses: helm/kind-action@v1
+        with:
+          cluster_name: pipepulse
+      - name: Load images into kind
+        run: kind load docker-image local/pipepulse/api:ci local/pipepulse/web:ci --name pipepulse
+      - uses: azure/setup-helm@v5
+      - name: Install
+        run: >-
+          helm install pp deploy/helm/pipepulse -n pipepulse --create-namespace
+          --set image.repository=local/pipepulse,image.tag=ci,image.pullPolicy=Never
+          --set demo.enabled=true,ingress.enabled=false
+          --wait --timeout 6m
+      - name: Smoke test
+        run: |
+          kubectl -n pipepulse port-forward svc/pp-pipepulse-api 8000:8000 &
+          kubectl -n pipepulse port-forward svc/pp-pipepulse-web 3000:3000 &
+          sleep 5
+          curl -sf localhost:8000/readyz
+          projects=$(curl -sf localhost:8000/api/projects | jq length)
+          echo "projects: $projects"
+          test "$projects" -gt 0
+          curl -sf -o /dev/null localhost:3000/
+      - name: Cluster state on failure
+        if: failure()
+        run: |
+          kubectl -n pipepulse get pods,jobs -o wide
+          kubectl -n pipepulse describe pods | tail -n 80
+          kubectl -n pipepulse logs -l app.kubernetes.io/instance=pp --all-containers --tail=50

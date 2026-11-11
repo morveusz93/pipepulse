@@ -104,6 +104,7 @@ Inspired by [larscom/gitlab-ci-dashboard](https://github.com/larscom/gitlab-ci-d
 - [x] Frontend-only demo mode (snapshot of the real API)
 - [x] Live demo on [pipepulse.morv.dev](https://pipepulse.morv.dev)
 - [x] Prometheus metrics
+- [x] Published images and Helm chart (GHCR), install tested in CI
 
 ---
 
@@ -121,8 +122,38 @@ docker compose up -d postgres migrate
 cd api && uv run python -m pipepulse.seed.snapshot ../web/src/demo/snapshot.json
 ```
 
-To run pipepulse for real against your GitLab, use docker-compose (below) or the
-[Kubernetes guide](deploy/README.md).
+To run pipepulse for real against your GitLab, deploy it on Kubernetes (next section) or use
+docker-compose (below).
+
+## Deploy on Kubernetes
+
+Images (`amd64`, `arm64`) and the Helm chart are published to GHCR on every release.
+
+```
+your-host ─▶ Ingress ─┬─ /api/* ─▶ api (FastAPI)
+                       └─ /*     ─▶ web (Next.js)
+                          worker (polls GitLab) · postgres · migrate job (on every release)
+```
+
+A look with generated data, no GitLab token needed:
+
+```bash
+helm install pipepulse oci://ghcr.io/morveusz93/charts/pipepulse \
+  -n pipepulse --create-namespace --set demo.enabled=true
+```
+
+Against your GitLab, with a `read_api` token stored in a Secret:
+
+```bash
+kubectl create namespace pipepulse
+kubectl -n pipepulse create secret generic pipepulse-secrets --from-literal=gitlab-token='glpat-...'
+helm install pipepulse oci://ghcr.io/morveusz93/charts/pipepulse -n pipepulse \
+  --set secrets.existingSecret=pipepulse-secrets --set ingress.host=pipepulse.example.com
+```
+
+CI installs the chart on a kind cluster in demo mode on every push and checks that the API
+serves data and the dashboard renders. The [Kubernetes guide](deploy/README.md) covers TLS,
+choosing projects, an external database and running it locally with k3d.
 
 ## Local development
 

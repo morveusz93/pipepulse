@@ -1,0 +1,69 @@
+name: Release
+
+# main  -> images tagged `main` and `sha-<short>` (for trying unreleased changes)
+# vX.Y.Z -> images tagged `X.Y.Z` and `latest`, plus the Helm chart as an OCI artifact
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        component: [api, web]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.component }}
+          flavor: latest=false
+          tags: |
+            type=ref,event=branch
+            type=sha
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.component }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+
+  chart:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v5
+      - name: Check the tag matches the chart
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          chart_version=$(awk '/^version:/ {print $2}' deploy/helm/pipepulse/Chart.yaml)
+          app_version=$(awk '/^appVersion:/ {gsub(/"/, "", $2); print $2}' deploy/helm/pipepulse/Chart.yaml)
+          if [ "$version" != "$chart_version" ] || [ "$version" != "$app_version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME, Chart.yaml version $chart_version, appVersion $app_version"
+            exit 1
+          fi
+      - name: Push the chart to GHCR
+        run: |
+          helm package deploy/helm/pipepulse
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
+          helm push "pipepulse-${GITHUB_REF_NAME#v}.tgz" "oci://ghcr.io/${{ github.repository_owner }}/charts"

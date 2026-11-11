@@ -1,7 +1,9 @@
 # Self-hosting pipepulse on Kubernetes
 
-The Helm chart in `helm/pipepulse` runs the full app (API, poller, dashboard, Postgres) against
-your own GitLab. It's tested on k3s; any cluster with an Ingress controller works.
+The Helm chart runs the full app (API, poller, dashboard, Postgres) against your own GitLab.
+Images (`linux/amd64`, `linux/arm64`) and the chart are published to GHCR on every release, so
+there is nothing to build. It's tested on k3s and, in CI, on kind; any cluster with an Ingress
+controller works.
 
 > The public demo doesn't use any of this: it's the dashboard alone on Vercel, serving a
 > snapshot of generated data (see the root README).
@@ -12,17 +14,22 @@ your-host ─▶ Ingress ─┬─ /api/* ─▶ api (FastAPI)
                           worker (polls GitLab) · postgres · migrate job (on every release)
 ```
 
-## 1. Images
+## Quick look, no token
 
-Build and push both images to a registry your cluster can pull from:
+Demo mode seeds 6 projects with 60 days of generated history:
 
 ```bash
-docker build -t <registry>/pipepulse/api:<tag> api
-docker build -t <registry>/pipepulse/web:<tag> web
-docker push <registry>/pipepulse/api:<tag> && docker push <registry>/pipepulse/web:<tag>
+helm install pipepulse oci://ghcr.io/morveusz93/charts/pipepulse \
+  -n pipepulse --create-namespace --set demo.enabled=true
 ```
 
-## 2. GitLab token
+The dashboard is served on `pipepulse.localhost` through your cluster's default IngressClass;
+set `ingress.host` to something your cluster answers on. No cluster at hand? See
+[Trying it locally](#trying-it-locally).
+
+## Tracking your GitLab
+
+### 1. Token
 
 A token with the `read_api` scope, as a Secret created out of band (never in values files):
 
@@ -31,15 +38,16 @@ kubectl create namespace pipepulse
 kubectl -n pipepulse create secret generic pipepulse-secrets --from-literal=gitlab-token='glpat-...'
 ```
 
-## 3. Install
+### 2. Install
 
 ```bash
-helm upgrade --install pipepulse helm/pipepulse -n pipepulse \
-  --set image.repository=<registry>/pipepulse --set image.tag=<tag> \
+helm upgrade --install pipepulse oci://ghcr.io/morveusz93/charts/pipepulse -n pipepulse \
   --set secrets.existingSecret=pipepulse-secrets \
   --set gitlab.url=https://gitlab.com \
   --set ingress.host=pipepulse.example.com
 ```
+
+Pin a version with `--version 0.2.0`; each chart version runs the images of the same version.
 
 The worker picks up every project the token can see pipelines of within a couple of minutes
 and backfills 30 days of history; `kubectl -n pipepulse logs -f deploy/pipepulse-worker` shows
@@ -49,23 +57,38 @@ Projects you drop stop being polled and keep their history until deleted on the 
 The dashboard has no login and job logs can contain sensitive output: restrict the Ingress
 (e.g. an auth middleware or an internal-only host) rather than exposing it publicly.
 
-TLS: with [cert-manager](https://cert-manager.io) installed, apply `cluster/cluster-issuer.yaml`
-(set your email first) and keep `ingress.tls.clusterIssuer: letsencrypt`. Otherwise set
-`ingress.tls.enabled=false` and terminate TLS elsewhere. See `helm/pipepulse/values.yaml` for
-resources, external databases and the rest.
+### TLS
+
+With [cert-manager](https://cert-manager.io) installed, apply `cluster/cluster-issuer.yaml`
+(set your email first) and add
+`--set ingress.tls.enabled=true,ingress.tls.clusterIssuer=letsencrypt`. Without it, terminate
+TLS in front of the cluster. `helm show values oci://ghcr.io/morveusz93/charts/pipepulse` lists
+the rest: resources, an external database, poll interval, Prometheus annotations.
 
 ## Trying it locally
 
 [k3d](https://k3d.io) runs k3s in Docker:
 
 ```bash
-docker compose build
-docker tag pipepulse-api localhost/pipepulse/api:dev && docker tag pipepulse-web localhost/pipepulse/web:dev
 k3d cluster create pipepulse -p "8088:80@loadbalancer"
-k3d image import localhost/pipepulse/api:dev localhost/pipepulse/web:dev -c pipepulse
-helm install pp helm/pipepulse -n pipepulse --create-namespace \
-  --set image.repository=localhost/pipepulse,image.tag=dev,image.pullPolicy=Never \
-  --set ingress.host=pipepulse.localhost,ingress.tls.enabled=false \
-  --set secrets.gitlabToken=glpat-... --set 'gitlab.projects={my-team/backend}' --wait
+helm install pipepulse oci://ghcr.io/morveusz93/charts/pipepulse \
+  -n pipepulse --create-namespace --set demo.enabled=true --wait
 open http://pipepulse.localhost:8088
 ```
+
+Swap `--set demo.enabled=true` for `--set secrets.gitlabToken=glpat-... --set 'gitlab.projects={my-team/backend}'`
+to point it at real projects.
+
+## Your own images
+
+To run a fork or unreleased changes, build and push both images, then point the chart at them:
+
+```bash
+docker build -t <registry>/pipepulse/api:<tag> api
+docker build -t <registry>/pipepulse/web:<tag> web
+docker push <registry>/pipepulse/api:<tag> && docker push <registry>/pipepulse/web:<tag>
+helm upgrade --install pipepulse helm/pipepulse -n pipepulse \
+  --set image.repository=<registry>/pipepulse --set image.tag=<tag> ...
+```
+
+Every push to `main` also publishes `ghcr.io/morveusz93/pipepulse/{api,web}:main`.
