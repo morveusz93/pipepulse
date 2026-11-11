@@ -12,6 +12,7 @@ import signal
 from datetime import UTC, datetime
 
 from sqlalchemy import select
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pipepulse.config import Settings, get_settings
@@ -165,6 +166,30 @@ async def check_token(client: GitLabClient) -> None:
         logger.info("Token %r expires on %s", info.name, info.expires_at)
 
 
+async def wait_for_database(
+    sessionmaker: async_sessionmaker[AsyncSession], stop: asyncio.Event, interval: float = 3
+) -> bool:
+    """Block until the database is up and migrated; False if asked to stop first.
+
+    On a fresh install the worker usually starts before Postgres accepts connections and
+    before the migration job has created the tables: wait quietly instead of failing a cycle.
+    """
+    waiting_logged = False
+    while not stop.is_set():
+        try:
+            async with sessionmaker() as session:
+                await session.execute(select(Project.id).limit(1))
+            return True
+        except DBAPIError as exc:
+            if not waiting_logged:
+                reason = str(exc.orig).splitlines()[0] if exc.orig else type(exc).__name__
+                logger.info("Waiting for the database to be ready (%s)", reason)
+                waiting_logged = True
+        with contextlib.suppress(TimeoutError):
+            await asyncio.wait_for(stop.wait(), timeout=interval)
+    return False
+
+
 def sync_options(settings: Settings) -> SyncOptions:
     return SyncOptions(
         backfill_days=settings.backfill_days,
@@ -189,6 +214,8 @@ async def run_forever() -> None:
         return
 
     options, sessionmaker = sync_options(settings), get_sessionmaker()
+    if not await wait_for_database(sessionmaker, stop):
+        return
     async with GitLabClient(settings.gitlab_url, token) as client:
         await check_token(client)
         which = f"{len(paths)} configured project(s)" if paths else "all accessible projects"

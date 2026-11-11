@@ -1,15 +1,16 @@
+import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from pipepulse.config import Settings
-from pipepulse.models import Pipeline, Project
+from pipepulse.models import Base, Pipeline, Project
 from pipepulse.sync import SyncOptions
-from pipepulse.worker import check_token, poll_once, reconcile_projects
+from pipepulse.worker import check_token, poll_once, reconcile_projects, wait_for_database
 from tests.fake_gitlab import PROJECT_ID, FakeGitLab
 
 OPTIONS = SyncOptions(backfill_days=30)
@@ -287,3 +288,42 @@ async def test_check_token_logs_problems(
 
     [record] = [r for r in caplog.records if message in r.getMessage()]
     assert record.levelno == level
+
+
+# --- startup ----------------------------------------------------------------------------------
+
+
+async def test_waits_for_an_unreachable_database_without_tracebacks(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    engine = create_async_engine("postgresql+psycopg://pipepulse:x@127.0.0.1:1/pipepulse")
+    stop = asyncio.Event()
+    asyncio.get_running_loop().call_later(0.3, stop.set)
+    with caplog.at_level(logging.INFO, logger="pipepulse.worker"):
+        ready = await wait_for_database(async_sessionmaker(engine), stop, interval=0.05)
+    await engine.dispose()
+
+    assert ready is False
+    waiting = [r for r in caplog.records if "Waiting for the database" in r.message]
+    assert len(waiting) == 1  # logged once, not on every retry
+    assert all(r.exc_info is None for r in caplog.records)
+
+
+async def test_waits_until_the_schema_is_migrated(
+    sessionmaker: async_sessionmaker[AsyncSession],
+) -> None:
+    engine = sessionmaker.kw["bind"]
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+
+    async def migrate_later() -> None:
+        await asyncio.sleep(0.2)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+    migration = asyncio.create_task(migrate_later())
+    ready = await asyncio.wait_for(
+        wait_for_database(sessionmaker, asyncio.Event(), interval=0.05), timeout=5
+    )
+    await migration
+    assert ready is True
