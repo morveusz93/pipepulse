@@ -9,7 +9,7 @@
 {{- define "pipepulse.labels" -}}
 app.kubernetes.io/name: {{ .Chart.Name }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/version: {{ .Values.image.tag | quote }}
+app.kubernetes.io/version: {{ .Values.image.tag | default .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version }}
 {{- end -}}
@@ -21,7 +21,7 @@ app.kubernetes.io/component: {{ .component }}
 {{- end -}}
 
 {{- define "pipepulse.image" -}}
-{{ .root.Values.image.repository }}/{{ .name }}:{{ .root.Values.image.tag }}
+{{ .root.Values.image.repository }}/{{ .name }}:{{ .root.Values.image.tag | default .root.Chart.AppVersion }}
 {{- end -}}
 
 {{- define "pipepulse.secretName" -}}

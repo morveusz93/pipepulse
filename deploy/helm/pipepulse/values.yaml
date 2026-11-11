@@ -1,11 +1,13 @@
-# Images are pushed by CI as <repository>/api:<tag> and <repository>/web:<tag>.
+# Images are published by the release workflow as <repository>/api:<tag> and
+# <repository>/web:<tag>. An empty tag means the chart's appVersion.
 image:
-  repository: registry.gitlab.com/morveusz93/pipepulse
-  tag: latest
+  repository: ghcr.io/morveusz93/pipepulse
+  tag: ""
   pullPolicy: IfNotPresent
 imagePullSecrets: []
 
-# Internal: serve generated demo data with a nightly reseed instead of tracking GitLab.
+# Serve generated demo data (6 projects, nightly reseed) instead of tracking GitLab.
+# Handy for a first look: no token needed.
 demo:
   enabled: false
   reseedSchedule: "0 3 * * *"
@@ -65,9 +67,10 @@ postgres:
 
 ingress:
   enabled: true
-  className: traefik
-  host: pipepulse.morv.dev
+  # Empty = the cluster's default IngressClass (traefik on k3s).
+  className: ""
+  host: pipepulse.localhost
   tls:
-    enabled: true
-    # cert-manager ClusterIssuer; leave empty if TLS is terminated elsewhere.
-    clusterIssuer: letsencrypt
+    enabled: false
+    # cert-manager ClusterIssuer, e.g. "letsencrypt" (see deploy/cluster/cluster-issuer.yaml).
+    clusterIssuer: ""

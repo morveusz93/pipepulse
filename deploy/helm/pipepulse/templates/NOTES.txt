@@ -1,4 +1,4 @@
-pipepulse {{ .Values.image.tag }} is deployed.
+pipepulse {{ .Values.image.tag | default .Chart.AppVersion }} is deployed.
 
 {{- if .Values.ingress.enabled }}
   Dashboard: http{{ if .Values.ingress.tls.enabled }}s{{ end }}://{{ .Values.ingress.host }}
